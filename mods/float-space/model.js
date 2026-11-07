@@ -4,7 +4,7 @@ export const DEFAULT_SIZE = { width: 0.50, height: 0.60 };
 // One click sizes: a small window for notes or a quick command, the default,
 // and room for an agent.
 export const PRESETS = [
-  { id: "small", label: "Small", width: 0.20, height: 0.50 },
+  { id: "small", label: "Small", width: 0.25, height: 0.50 },
   { id: "normal", label: "Normal", ...DEFAULT_SIZE },
   { id: "large", label: "Large", width: 0.85, height: 0.88 },
 ];
@@ -43,7 +43,9 @@ export function readState(value) {
     version: 2,
     tabs,
     active: tabs.some(tab => tab.address === value?.active) ? value.active : tabs[0]?.address ?? null,
-    notes: typeof value?.notes === "string" ? value.notes : "",
+    // Notes live in their own file now (notes.js). The single page an earlier
+    // version kept here rides along untouched until it has been moved there.
+    ...(typeof value?.notes === "string" && value.notes !== "" ? { notes: value.notes } : {}),
     page: value?.page === "notes" ? "notes" : "terminal",
     size,
     sequence: Math.max(tabs.length, Number.isSafeInteger(value?.sequence) ? value.sequence : 0),

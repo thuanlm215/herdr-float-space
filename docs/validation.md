@@ -148,6 +148,32 @@ Not checked: the real KDE Wayland session, the light theme's colors, sound
 playback, and a layout without the button (alerts then stop while hidden,
 as before).
 
+## Named notes and file storage (2026-11-07)
+
+Checked on Herdr app 0.1.13 with core 0.1.18 in a throwaway app (its own
+`HERDR_APP_HOME`, `HC_SESSION` and an Xvfb display, so no input reached the
+real desktop), with `xdotool` input and screenshots, in the shipped `main`
+layout.
+
+| Check | Result |
+| --- | --- |
+| Start with an earlier version's Notes page in `shared.json` | Shown as the note "Notes"; `notes.json` created with it, then `notes` gone from `float-space.v1` |
+| Chevron, New note, type a name, Enter | Menu closed, the new empty note shown with the keyboard in it, its name in the tab |
+| Pick another note from the menu, also while a terminal tab shows | Notes page with that note; typing went into it |
+| Rename with the pencil; delete a note with text | Name saved, menu stayed open; "Delete this note?" asked first |
+| Add notes with ↓ and Enter until five | Ids `n3`–`n6` (the deleted `n2` not reused); New note dimmed, "5 of 5" |
+| Delete the shown note, confirming with Enter | The one before it shown; menu stayed open |
+| Type, then hide within 400 ms | The text was in `notes.json` |
+| Edit `notes.json` while hidden, show, type | The edit shown, typing added on top, no warning |
+| Edit `notes.json` while Notes is open, then type | The notes shown in Float Space saved over it; a "Float Space" warning toast |
+| Restart the app | Tab name and text read back from the file |
+| Start with a file that isn't JSON | Notes showed why and the path; the file was left as it was; restoring it brought Notes back within 2 s without reopening |
+| Ctrl+Tab and Ctrl+Shift+N; Ctrl+Tab with the menu open | Worked; ignored while the menu was open |
+| Small preset | 25 × 50; the header fits |
+
+Not checked: the real desktop session, macOS and Windows, and a save that
+fails for a reason other than an outside edit (a full disk, permissions).
+
 ## Earlier builds, with real input
 
 These used real mouse and keyboard events (through a temporary Linux input

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Notes holds up to five named notes. The Notes tab shows the open note's
+  name; its chevron opens a list to switch, add, rename or delete notes.
+- Notes are kept in `data/float-space/notes.json` in the app's folder
+  instead of Herdr's shared state, so typing no longer redraws every mod.
+  The single Notes page of earlier versions moves there on first opening.
+- The Small window preset is 25% wide (was 20%).
 - A tab goes back to the shell icon and its own title once the agent in it
   quits. Before, it kept the agent's icon and name, because herdr-core keeps
   an agent's last report after the agent exits.

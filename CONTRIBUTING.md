@@ -31,6 +31,8 @@ differ from its record.
 
 - `mods/float-space/model.js`: saved state, presets and the window spec.
   No Herdr calls, so the tests import it directly.
+- `mods/float-space/notes.js`: the notes and their file format, also
+  without Herdr calls.
 - `mods/float-space/controller.js`: the window's lifecycle (open, hide,
   reuse, recover, end a terminal) against a small host interface.
 - `mods/float-space/main.js`: views and the real Herdr and `hc` calls.

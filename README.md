@@ -41,10 +41,14 @@ again and you're back where you were. Your layout stays as it is.
   border turns your theme's accent color; clicking outside turns it back.
   Herdr keeps drawing the pane underneath as focused too; Float's border is
   the one to trust.
-- **Notes** leads the header and can't be closed: one scratchpad shared
-  across spaces, in your terminal font and size. It saves once you pause
-  typing, and when you switch tabs or hide the window.
-- **Window size** (diagonal arrows) has three presets: **Small** (20% × 50%,
+- **Notes** leads the header and can't be closed. It holds up to five named
+  notes, shared across spaces, in your terminal font and size. The tab shows
+  the open note's name; its chevron (or a click on the tab while Notes
+  shows) opens the list, where you switch, add, rename (pencil) or delete
+  (×) notes. ↑/↓ and Enter work there too. A note with text asks before it
+  goes; the last note can't be deleted. Notes save once you pause typing,
+  and when you switch notes or tabs or hide the window.
+- **Window size** (diagonal arrows) has three presets: **Small** (25% × 50%,
   for notes or a quick command), **Normal** (50% × 60%, the default) and
   **Large** (85% × 88%, room for an agent). Sliders set any other size;
   **Apply** keeps it. Each size opens centered the first time and then
@@ -61,7 +65,8 @@ Requires the Herdr desktop app and `hc`. Tested on Linux with Herdr
 Windows have not been tested.
 
 Float Space runs `hc` to start, list and end its own shells, and keeps Notes
-as plaintext in Herdr's `shared.json`. It makes no network requests.
+as plaintext in its own file, `~/.config/herdr-app/data/float-space/notes.json`.
+It makes no network requests.
 
 **With your Herdr agent:** ask it to add this mod from
 `https://github.com/thuanlm215/herdr-float-space`. It copies
@@ -101,10 +106,27 @@ and keeps the toasts and sounds coming while Float Space is hidden.
 
 ## State and terminal ownership
 
-Notes, tabs, the selected tab and the window size are saved under the
-shared key `float-space.v1`, so they survive restarts. Herdr saves where
-each window size was dropped in `windows.json`. Don't hand-edit
-`shared.json` while Herdr runs.
+Tabs, the selected tab and the window size are saved under the shared key
+`float-space.v1`, so they survive restarts. Herdr saves where each window
+size was dropped in `windows.json`. Don't hand-edit `shared.json` while
+Herdr runs.
+
+Notes live in `~/.config/herdr-app/data/float-space/notes.json`, written
+atomically:
+
+```json
+{ "version": 1, "active": "n1", "sequence": 1,
+  "notes": [{ "id": "n1", "name": "Notes", "text": "…" }] }
+```
+
+Keeping them out of shared state means typing no longer redraws every mod
+in the app. An agent or an editor may change the file; Float Space shows the
+change the next time Notes or its list opens. A change made while Notes is
+open loses to the next save from Float Space, and a notification says so.
+Float Space never overwrites a file it can't read; it shows the problem in
+Notes instead. Earlier versions kept one Notes page in shared state; the
+first opening moves it into the file as the note "Notes" and only then
+removes it from shared state.
 
 Hiding Float Space or closing Herdr leaves its shells running while the
 machine stays up. After a reboot, core brings them back as shells in their
@@ -139,8 +161,9 @@ herdr-app check mods/float-space
 ```
 
 No npm packages or build step. `model.js` holds saved state and the window's
-layout, `controller.js` the window's lifecycle, `main.js` the views and Herdr
-calls. [RECIPE.md](RECIPE.md) is the brief to rebuild it from scratch;
+layout, `notes.js` the notes, `controller.js` the window's lifecycle,
+`main.js` the views and Herdr calls. [RECIPE.md](RECIPE.md) is the brief to
+rebuild it from scratch;
 [docs/validation.md](docs/validation.md) records the checks run on the real
 app. See [CONTRIBUTING.md](CONTRIBUTING.md) before sending a change.
 
@@ -149,7 +172,8 @@ app. See [CONTRIBUTING.md](CONTRIBUTING.md) before sending a change.
 Hide Float Space, remove its `ctrl-shift-space` bindings and the
 `mod:float-space` section from `keys.json`
 (and the button block, if you added one), then delete
-`~/.config/herdr-app/mods/float-space`. Notes and shells stay. To end the
+`~/.config/herdr-app/mods/float-space`. Notes and shells stay (delete
+`~/.config/herdr-app/data/float-space/notes.json` to remove the notes). To end the
 shells too, close their tabs first, or list them with
 `hc ls --json --label herdr.mod=float-space` and end only the ones whose
 `herdr.float-space` label is your app home.

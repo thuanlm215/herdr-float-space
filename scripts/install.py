@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 ROOT = Path(__file__).resolve().parents[1]
 MOD_NAME = "float-space"
 MARKER = ".float-space-install.json"
-FILES = ("main.js", "controller.js", "model.js", "mod.json", "float.svg", "plus.svg", "notes.svg", "size.svg", "hide.svg", "spinner.svg", "close.svg")
+FILES = ("main.js", "controller.js", "model.js", "notes.js", "mod.json", "float.svg", "plus.svg", "notes.svg", "size.svg", "hide.svg", "spinner.svg", "close.svg", "chevron.svg", "check.svg", "rename.svg")
 GENERATED = {"gpui-kit.d.ts", "jsconfig.json"}
 
 

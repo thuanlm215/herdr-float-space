@@ -1,7 +1,7 @@
 # Float Space
 
 A floating scratch window over whatever Herdr shows: terminal tabs of its own
-and one Notes page shared by every space. Ctrl+Shift+Space shows it in any
+and up to five named notes shared by every space. Ctrl+Shift+Space shows it in any
 layout without changing that layout, and hides it again with its shells and
 their programs still running, returning the keyboard to the pane underneath.
 
@@ -15,8 +15,9 @@ their programs still running, returning the keyboard to the pane underneath.
   turns `accent` while the keyboard is in the window (below).
 - **The header**, 30px, on `background`, 6px side padding, 6px gaps, 12px
   type, a 1px bottom line in `border`. Left to right:
-  - **Notes**, a tab with the 14px notes icon and the word "Notes". It can't
-    be closed.
+  - **Notes**, a tab with the 14px notes icon, the open note's name and a
+    12px chevron in `dim` (`foreground` under the pointer). It can't be
+    closed.
   - A 1px × 14px divider in `border`, shown only when there are terminal tabs.
   - **Terminal tabs**, a strip that scrolls sideways, 2px apart. Each tab is
     a 22px pill with 8px side padding, 6px gaps and 6px corners: the program's
@@ -38,11 +39,25 @@ their programs still running, returning the keyboard to the pane underneath.
   Mono 14 by default), placeholder "Notes shared across your spaces…".
   Typing past the bottom scrolls one row at a time: the caret may sit on the
   last row, and the text never scrolls past its end.
+  Until the notes file has been read it is empty; a file that can't be read
+  shows why, in 12px `muted`, and the file's path in `dim`.
+- **The notes menu**, a 248px popup on `popover` opened under the Notes tab
+  at its left edge, 5px padding, 12.8px type, like Herdr's menus. One 31px
+  row per note with 7px corners: a 14px check for the open note (a blank
+  14px slot otherwise), the name truncated, then 22px rename (pencil) and
+  delete (×) buttons with 13px icons in `dim` (`foreground` under the
+  pointer); no delete when only one note is left. Rows get `hover` under the
+  pointer and `selected` for the keyboard's row. A 1px `border` line, then
+  **+ New note** with "<n> of 5" in 11px `dim` on the right, `dim` all over
+  once there are five. Renaming or naming a new note puts a 25px input in
+  the row (6px corners, `accent` outline, `background`). Deleting a note
+  with text asks in the row: "Delete this note?" with a solid **Delete** and
+  a raised **Cancel**, 22px tall.
 - **Window size**, a 280px popup on `popover` opened under its button, 14px
   padding, 10px gaps, 12px type:
   - "Window size" in medium weight.
   - Three presets side by side, each a 6px-corner box with the name and an
-    11px `dim` size: Small 20 × 50, Normal 50 × 60, Large 85 × 88. The one
+    11px `dim` size: Small 25 × 50, Normal 50 × 60, Large 85 × 88. The one
     matching the current size has an `accent` outline on `selected`; the
     others an `input` outline on `raised`.
   - Width (20–95%) and Height (30–95%), each a label with its value ("50%",
@@ -124,8 +139,26 @@ their programs still running, returning the keyboard to the pane underneath.
   window restores focus to the pane that held it before opening. Escape is left
   to the terminal programs.
 - **Notes** take keyboard focus when opened and save 400 ms after typing
-  pauses, and when Notes closes (another tab, hiding). They are the same in
-  every space.
+  pauses, when the editor loses the keyboard, and when Notes closes (another
+  tab, hiding). They are the same in every space.
+- **The notes menu** opens from the Notes tab's chevron, or from a click on
+  the tab while Notes shows; a second press closes it. Picking a note shows
+  it on the Notes page, with the keyboard in it, and closes the menu; so
+  does **New note**, after its name (prefilled "Note <n>", selected) is
+  confirmed with Enter. Rename (Enter saves) and delete keep the menu open.
+  An empty note goes at once; one with text asks first. Deleting the open
+  note shows the next one, or the one before it at the end. ↑/↓ move the
+  keyboard's row, Enter picks it (or confirms a delete), Esc closes the
+  menu and drops an unfinished rename (Herdr closes a popup on Esc). A name
+  is one line of at most 40 characters; a blank one keeps the old name
+  ("Note <n>" for a new note).
+  At most five notes; the last one can't be deleted. Header shortcuts do
+  nothing while the menu is open.
+- **Outside edits**: the notes file is read again whenever Notes or the menu
+  opens and nothing typed is waiting to be saved, so a change made by an
+  agent or an editor shows then. A save that finds the file changed by
+  something other than this app keeps the notes shown here and says so in a
+  "Float Space" warning, at most one every 10 s (save errors too).
 - **Window size**: a preset applies at once and closes the popup. The
   sliders show their value while dragging but change nothing until Apply;
   Reset puts 50 × 60 in the sliders; Escape or a click outside cancels.
@@ -137,13 +170,20 @@ their programs still running, returning the keyboard to the pane underneath.
 - Errors show as a Herdr notification titled "Float Space".
 - Notes, tabs, the selected page and the size survive restarts. After a
   reboot the shells come back as shells; running programs and agents don't.
+- **Moving old notes**: the first read of the notes file in an app run
+  moves the single Notes page an earlier version left in shared state into
+  the file, as the note "Notes" (or as one more note when a file already
+  exists and has room), and removes it from shared state only once the file
+  holds it.
 
 ## Built from
 
 - **Files** (`mods/float-space/`): `main.js` (views and the Herdr calls),
   `controller.js` (the window's lifecycle), `model.js` (saved state and the
-  window's layout), `mod.json`, and its icons `float.svg`, `notes.svg`,
-  `plus.svg`, `size.svg`, `hide.svg`, `close.svg`, `spinner.svg`.
+  window's layout), `notes.js` (the notes, without Herdr calls), `mod.json`,
+  and its icons `float.svg`, `notes.svg`, `plus.svg`, `size.svg`,
+  `hide.svg`, `close.svg`, `spinner.svg`, `chevron.svg`, `check.svg`,
+  `rename.svg`.
 - **mod.json**: `{"place": "none", "title": "Float Space", "overlay":
   {"kind": "window", "frame": "none", "width": 1, "height": 1}}`. No layout.
 - **keys.json**: `ctrl-shift-space` → `mod.open:float-space` in `global`,
@@ -165,7 +205,8 @@ their programs still running, returning the keyboard to the pane underneath.
     Float Space.
   - `"edge"` with a `side` (`left`, `right`, `bottom`): the border beside and
     under the body.
-  - `"notes"`: Notes. `"size"`: the size popup.
+  - `"notes"`: Notes. `"notes-menu"`: the notes menu. `"size"`: the size
+    popup.
   - none in a layout, or `"launcher"`: the optional button, which also runs
     the agent check every second.
 - **The window**: `openOverlay({kind: "window", key:
@@ -183,7 +224,7 @@ their programs still running, returning the keyboard to the pane underneath.
   height: 1, props: {role: "run", command}})`.
   Only the current header generation handles the four navigation commands
   from `nextCommand()`, and only while it or Notes has keyboard focus with
-  no size popup. A remount must not leave an older header handling them too.
+  no size popup or notes menu. A remount must not leave an older header handling them too.
 - **Reconciliation**: every 3 s while open, compare owned live addresses with
   saved tabs. Remember a mismatching snapshot only after core confirms it
   successfully. Failed queries retry at the next check; successful queries
@@ -194,15 +235,26 @@ their programs still running, returning the keyboard to the pane underneath.
   running build's class on every use.
 - **herdr**: `appHome`, `home`, `hc`, `focused`, `panes`, `terminals`,
   `shared`, `setShared`, `settings`, `props`, `theme`, `window`, `run("pane.focus")`,
-  `openOverlay`, `closeOverlay`, `notify`, `playSound`, `nextCommand`. **gpui**: `View`, `div`, `svg`,
-  `image`, `h_flex`, `v_flex`, `TextareaState`, `Textarea`, `SliderState`,
-  `Slider`, `SliderTrack`, `SliderIndicator`, `SliderThumb`.
+  `openOverlay`, `closeOverlay`, `notify`, `playSound`, `nextCommand`,
+  `readTextFile`, `writeTextFile`. **gpui**: `View`, `div`, `svg`,
+  `image`, `h_flex`, `v_flex`, `TextareaState`, `Textarea`, `InputState`,
+  `Input`, `SliderState`, `Slider`, `SliderTrack`, `SliderIndicator`,
+  `SliderThumb`.
 - **Programs**: `hc run --bg --keep --no-parent --cwd <focused terminal, else space folder, else home> --json`,
   `hc ls --json`, `hc kill <address>`, always with the labels
   `herdr.mod=float-space` and `herdr.float-space=<app home>`.
 - **Saved state**: shared key `float-space.v1`, `{version: 2, tabs:
-  [{address, title}], active, notes, page: "terminal" | "notes", size:
-  {width, height}, sequence}`.
+  [{address, title}], active, page: "terminal" | "notes", size:
+  {width, height}, sequence}`; a `notes` string from an earlier version is
+  carried along untouched until it has been moved.
+- **Notes file**: `<app home>/data/float-space/notes.json` (Herdr makes
+  `data/<mod>` for every mod), two-space indented JSON with a trailing
+  newline: `{version: 1, active, sequence, notes: [{id, name, text}]}`. Ids
+  are `n<number>` from `sequence` and never reused. Reading never drops a
+  note's text: a missing or repeated id gets a new one, a missing name
+  becomes "Note <n>", and a file with more than five notes keeps them all
+  (only adding is refused). A file of a newer `version` or that isn't JSON
+  is never written.
 
 ## Watch out
 
@@ -261,8 +313,24 @@ their programs still running, returning the keyboard to the pane underneath.
   12px thumb on a 4px groove. Stop mouse-down propagation on tabs, buttons and
   Notes, or they drag the window. A layout `shadow` is clipped to a window's
   bounds.
-- `setShared` redraws every mod in the app: save Notes after a pause, never
-  write unchanged state, and keep the window's runtime state in memory.
+- `setShared` redraws every mod in the app: never write unchanged state, and
+  keep the window's runtime state in memory. Notes stay out of shared state
+  for that reason.
+- Notes' memory (the notes, the file as last read or written) lives in
+  `globalThis.__herdr_float_space_notes_v1`, shared by copies and kept
+  across reloads. `writeTextFile` runs on a thread of its own and lands even
+  when the copy that called it is stopped, so writes need no lease: each
+  passes the file's text as last known, and a stale one reads the file
+  again. Text this app wrote recently is no news; anything else is an
+  outside edit. One read per app run is shared through a timestamp that
+  expires after 3 s, not a promise, for the same reason as the command
+  lease. The header, Notes and the menu redraw on one shared promise, as
+  the border's blocks do, and the header saves anything left unsaved every
+  3 s.
+- A press outside the notes menu closes it before the Notes tab's click
+  arrives. It records itself in `globalThis.__herdr_float_space_notes_menu_v1`
+  like the size popup. A press on the chevron also reaches the tab, whose
+  bounds place the menu.
 - Notes' textarea is `set_auto_grow(10, 10)`, not `rows: 10`. Both give at
   least 10 rows that fill the window, but the plain mode, once 24 rows fit,
   keeps the caret 3 rows above the bottom and clamps the scroll only after
@@ -290,8 +358,8 @@ their programs still running, returning the keyboard to the pane underneath.
   paths, `mod: "float-space"` in the overlay specs, the `herdr.mod` label, the
   `float-space.v1` key, the two `globalThis` names and `keys.json`.
 - Built on Herdr 0.1.10, core 0.1.15; tested on 0.1.11, core 0.1.16, Linux. It runs `hc` and
-  local shells, keeps Notes as plaintext in `shared.json`, makes no network
-  requests and reads no files outside the app.
+  local shells, keeps Notes as plaintext in `data/float-space/notes.json`,
+  makes no network requests and reads no files outside the app.
 
 ## Done when
 
@@ -304,7 +372,10 @@ their programs still running, returning the keyboard to the pane underneath.
   the same terminal with the same process.
 - + adds a shell, tab clicks switch, × ends only that terminal, and killing
   the shown terminal from outside shows the next tab at once.
-- Notes typed in one space appear in another and survive a restart.
+- Notes typed in one space appear in another and survive a restart. Five
+  notes can be added, switched, renamed and deleted from the menu; a sixth
+  is refused. A Notes page left in `shared.json` by an earlier version shows
+  as the note "Notes" and leaves `shared.json`.
 - Small, Normal and Large apply in one click and fit inside the app; the
   sliders change nothing until Apply.
 - The border is `accent` all the way round after clicking the window's

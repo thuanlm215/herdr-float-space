@@ -426,7 +426,7 @@ test("presets: a small window, the default, a large one, all within bounds", () 
   for (const preset of PRESETS) {
     assert.deepEqual(readState({ size: preset }).size, { width: preset.width, height: preset.height });
   }
-  assert.deepEqual({ width: PRESETS[0].width, height: PRESETS[0].height }, { width: 0.20, height: 0.50 });
+  assert.deepEqual({ width: PRESETS[0].width, height: PRESETS[0].height }, { width: 0.25, height: 0.50 });
   assert.ok(PRESETS[2].width > PRESETS[1].width && PRESETS[2].height > PRESETS[1].height);
 });
 
