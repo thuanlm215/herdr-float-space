@@ -6,6 +6,26 @@ export const MAX_NOTES = 5;
 export const NAME_LENGTH = 40;
 const ID = /^n[1-9][0-9]*$/;
 
+// Sticky-note colors: a pastel fill (one brightness for all but black) and
+// the ink that reads on it. They stay the same in light and dark themes. A
+// note without one follows Herdr's theme.
+export const NOTE_COLORS = [
+  { id: "white", label: "White", background: "#d1d4d9", foreground: "#2a2c31" },
+  { id: "black", label: "Black", background: "#2c2f33", foreground: "#d5d8de" },
+  { id: "red", label: "Red", background: "#fac9c7", foreground: "#3a1f22" },
+  { id: "orange", label: "Orange", background: "#f6cdb1", foreground: "#3b2716" },
+  { id: "yellow", label: "Yellow", background: "#e2d4a8", foreground: "#3b3220" },
+  { id: "green", label: "Green", background: "#bcddc2", foreground: "#1f3324" },
+  { id: "blue", label: "Blue", background: "#bcd7f0", foreground: "#1d2c3b" },
+  { id: "pink", label: "Pink", background: "#f2cadb", foreground: "#3a2030" },
+];
+
+// The note's color, or null for the theme's (no color, or one this version
+// doesn't know).
+export function noteColor(note) {
+  return NOTE_COLORS.find(color => color.id === note?.color) ?? null;
+}
+
 // The mod's data folder, which Herdr makes for every mod.
 export function notesPath(appHome) {
   return `${appHome}/data/float-space/notes.json`;
@@ -37,6 +57,8 @@ export function readNotes(value) {
     id: ids[i] ?? `n${++sequence}`,
     name: noteName(note.name, `Note ${i + 1}`),
     text: typeof note.text === "string" ? note.text : "",
+    // Written only when set, so a note without one reads as before.
+    ...(noteColor(note) ? { color: note.color } : {}),
   }));
   if (!notes.length) notes.push({ id: `n${++sequence}`, name: "Notes", text: "" });
   return {
@@ -102,6 +124,21 @@ export function removeNote(doc, id) {
   const notes = doc.notes.filter(note => note.id !== id);
   const active = doc.active === id ? (notes[index] ?? notes[index - 1]).id : doc.active;
   return { ...doc, active, notes };
+}
+
+// `color` is a NOTE_COLORS id, or null to follow the theme again.
+export function setNoteColor(doc, id, color) {
+  const note = doc.notes.find(item => item.id === id);
+  const next = NOTE_COLORS.some(item => item.id === color) ? color : null;
+  if (!note || (note.color ?? null) === next) return doc;
+  return {
+    ...doc,
+    notes: doc.notes.map(item => {
+      if (item !== note) return item;
+      const { color: _old, ...rest } = item;
+      return next ? { ...rest, color: next } : rest;
+    }),
+  };
 }
 
 export function selectNote(doc, id) {

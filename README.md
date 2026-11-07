@@ -44,10 +44,18 @@ again and you're back where you were. Your layout stays as it is.
 - **Notes** leads the header and can't be closed. It holds up to five named
   notes, shared across spaces, in your terminal font and size. The tab shows
   the open note's name; its chevron (or a click on the tab while Notes
-  shows) opens the list, where you switch, add, rename (pencil) or delete
-  (×) notes. ↑/↓ and Enter work there too. A note with text asks before it
+  shows) opens the list, where you switch, add, color (dot), rename
+  (pencil) or delete (×) notes. ↑/↓ and Enter work there too. A note with text asks before it
   goes; the last note can't be deleted. Notes save once you pause typing,
   and when you switch notes or tabs or hide the window.
+- **Note colors**: the dot on a note's row shows its colors, sticky-note
+  style: white, black, red, orange, yellow, green, blue or pink, or
+  **Theme** (the first, a ring) to follow Herdr's theme again. ←/→ and Enter
+  pick one from the keyboard. A colored note paints the Notes page and the
+  window's bottom edge, keeps that color in light and dark themes, and shows
+  it as a small square on the Notes tab. In a dark theme the caret and
+  selection stay Herdr's near-white, faint on the pastel colors. Earlier
+  versions of Float Space drop the color when they save.
 - **Window size** (diagonal arrows) has three presets: **Small** (25% × 50%,
   for notes or a quick command), **Normal** (50% × 60%, the default) and
   **Large** (85% × 88%, room for an agent). Sliders set any other size;

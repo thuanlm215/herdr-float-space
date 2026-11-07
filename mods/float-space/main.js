@@ -2,7 +2,7 @@ import { View, div, svg, image } from "gpui-kit";
 import { HoverCard, h_flex, v_flex, TextareaState, Textarea, InputState, Input, SliderState, Slider, SliderTrack, SliderIndicator, SliderThumb } from "gpui-base";
 import { appHome, home, hc, focused, spaces, panes, terminals, shared, setShared, settings, props, theme, run, openOverlay, closeOverlay, notify, playSound, nextCommand, readTextFile, writeTextFile, window as app } from "herdr";
 import { STATE_KEY, DEFAULT_SIZE, PRESETS, readState, ownedTerminals, tabName, tabProgram, liveStatus, pressedInWindow, agentAlerts, unseenFinishes, tabStatus, startFolder } from "./model.js";
-import { MAX_NOTES, notesPath, parseNotes, serializeNotes, firstNotes, adoptLegacy, activeNote, nextNoteName, addNote, renameNote, removeNote, selectNote, setNoteText } from "./notes.js";
+import { MAX_NOTES, NOTE_COLORS, notesPath, parseNotes, serializeNotes, firstNotes, adoptLegacy, activeNote, nextNoteName, addNote, renameNote, removeNote, selectNote, setNoteText, setNoteColor, noteColor } from "./notes.js";
 import { FloatController } from "./controller.js";
 
 const WINDOW = "__herdr_float_space_window_v1";
@@ -319,6 +319,19 @@ function hoverLabel(t, text) {
     .text_size(12).text_color(t.foreground).whitespace_nowrap().child(text);
 }
 
+// A note's color as a dot; the theme's is a ring around the background.
+function colorDot(t, color, size) {
+  return div().size(size).flex_none().rounded_full().border_1()
+    .border_color(color ? "#00000033" : t.dim).bg(color ? color.background : t.background);
+}
+
+// The color Notes and the window's bottom band paint: the shown note's, or
+// the theme's.
+function notesLook(t, note) {
+  const color = noteColor(note);
+  return color ? { background: color.background, foreground: color.foreground } : { background: t.background, foreground: t.foreground };
+}
+
 export default class FloatSpace extends View {
   init(_props, cx) {
     this.copyProps = props() ?? {};
@@ -364,10 +377,12 @@ export default class FloatSpace extends View {
       globalThis[NOTES_MENU] = { overlay: this.copyProps.overlay };
       this.handle = cx.focus_handle();
       // The row the arrow keys are on; a note being renamed ({id}) or named
-      // before it's added ({id: null}); a note waiting for "Delete".
+      // before it's added ({id: null}); a note waiting for "Delete"; a note
+      // whose colors show ({id, cursor} on one of them).
       this.cursor = null;
       this.editing = null;
       this.confirming = null;
+      this.coloring = null;
       this.input = InputState.new({ value: "" });
       this.input.on("submit", (_e, cx) => { this.finishEdit(); cx.notify(); });
       followsNotes(cx);
@@ -459,6 +474,8 @@ export default class FloatSpace extends View {
       });
     } else if (this.role === "edge") {
       drawsBorder(cx);
+      // The bottom band takes the shown note's color.
+      if (this.copyProps.side === "bottom") followsNotes(cx);
     } else if (this.role === "launcher") {
       // The button stays in its layout while the window is hidden, so it
       // keeps the alerts and its dot going then.
@@ -584,8 +601,13 @@ export default class FloatSpace extends View {
   notesTab(shown) {
     const t = theme();
     const doc = notesMemory().doc;
-    const label = doc ? activeNote(doc).name : "Notes";
+    const note = doc ? activeNote(doc) : null;
+    const label = note?.name ?? "Notes";
+    const color = noteColor(note);
     const press = event => this.pressNotesMenu(event);
+    // A colored note shows its color as a small square, unlike the round
+    // status dots of terminal tabs.
+    const swatch = color ? div().size(8).flex_none().rounded(2).border_1().border_color("#00000033").bg(color.background) : null;
     // A press on the chevron reaches the tab too, which records where the
     // menu opens; the click stays the chevron's.
     const chevron = div().id("float-notes-menu-button").flex_none().text_color(t.dim).hover(s => s.text_color(t.foreground))
@@ -593,7 +615,7 @@ export default class FloatSpace extends View {
       .on_click((_e, cx) => { cx.stop_propagation(); this.toggleNotesMenu(); })
       .child(svg("mods/float-space/chevron.svg").size(12));
     return this.tab("float-notes-tab", svg("mods/float-space/notes.svg").size(14).flex_none().text_color(shown ? t.foreground : t.muted),
-      label, shown, () => shown ? this.toggleNotesMenu() : act("notes"), [chevron], press)
+      label, shown, () => shown ? this.toggleNotesMenu() : act("notes"), [swatch, chevron].filter(Boolean), press)
       .tooltip("Notes shared across your spaces · Ctrl+Shift+N");
   }
 
@@ -660,6 +682,7 @@ export default class FloatSpace extends View {
     this.input.set_selected_range({ start: 0, end: name.length });
     this.editing = { id };
     this.confirming = null;
+    this.coloring = null;
     this.input.focus();
   }
 
@@ -681,8 +704,26 @@ export default class FloatSpace extends View {
     const note = notesMemory().doc?.notes.find(item => item.id === id);
     if (!note) return;
     this.editing = null;
+    this.coloring = null;
     if (note.text.trim() === "") this.deleteNote(id);
     else this.confirming = id;
+  }
+
+  // The colors, in the row: the theme's first, then NOTE_COLORS.
+  startColor(id) {
+    const note = notesMemory().doc?.notes.find(item => item.id === id);
+    if (!note) return;
+    this.editing = null;
+    this.confirming = null;
+    this.coloring = { id, cursor: NOTE_COLORS.indexOf(noteColor(note)) + 1 };
+    this.handle.focus();
+  }
+
+  // Keeps the menu open, so the note under it shows the color at once.
+  pickColor(id, color) {
+    this.coloring = null;
+    changeNotes(doc => setNoteColor(doc, id, color));
+    this.handle.focus();
   }
 
   deleteNote(id) {
@@ -691,7 +732,8 @@ export default class FloatSpace extends View {
     this.handle.focus();
   }
 
-  // ↑/↓ move, Enter picks (or confirms a delete). Esc closes the menu, an
+  // ↑/↓ move, Enter picks (or confirms a delete). While a note's colors show,
+  // ←/→ move along them and Enter picks one. Esc closes the menu, an
   // unfinished rename with it: Herdr closes a popup on Esc.
   menuKey(event, cx) {
     const doc = notesMemory().doc;
@@ -699,6 +741,18 @@ export default class FloatSpace extends View {
     if (this.confirming) {
       if (event.key !== "enter") return;
       this.deleteNote(this.confirming);
+      cx.notify();
+      return;
+    }
+    if (this.coloring) {
+      const count = NOTE_COLORS.length + 1;
+      if (event.key === "right") this.coloring.cursor = (this.coloring.cursor + 1) % count;
+      else if (event.key === "left") this.coloring.cursor = (this.coloring.cursor + count - 1) % count;
+      else if (event.key === "enter") this.pickColor(this.coloring.id, NOTE_COLORS[this.coloring.cursor - 1]?.id ?? null);
+      else if (event.key === "escape") {
+        closeOverlay(this.copyProps.overlay);
+        return;
+      } else return;
       cx.notify();
       return;
     }
@@ -741,9 +795,28 @@ export default class FloatSpace extends View {
         .text_size(12.8).text_color(t.foreground));
   }
 
+  // A note's colors in place of its row: 20px rings around 14px dots, the
+  // note's own ringed in `accent`, the keyboard's in `dim`.
+  colorRow(note) {
+    const t = theme();
+    const current = noteColor(note);
+    const options = [null, ...NOTE_COLORS];
+    return h_flex().id(`float-note-${note.id}`).h(31).px(7).gap(4).flex_none().items_center().rounded(7).bg(t.selected)
+      .children(options.map((color, index) => {
+        const label = color ? color.label : "Theme";
+        const ring = color === current ? t.accent : index === this.coloring.cursor ? t.dim : t.selected;
+        return h_flex().id(`float-note-color-${note.id}-${color?.id ?? "theme"}`).size(20).flex_none().items_center().justify_center()
+          .rounded_full().border_2().border_color(ring).cursor_pointer().hover(s => s.border_color(color === current ? t.accent : t.foreground))
+          .tooltip(label).accessibility_label(`${label} note`)
+          .on_click((_e, cx) => { cx.stop_propagation(); this.pickColor(note.id, color?.id ?? null); cx.notify(); })
+          .child(colorDot(t, color, 14));
+      }));
+  }
+
   noteRow(note, index, doc) {
     const t = theme();
     if (this.editing?.id === note.id) return this.editRow(`float-note-name-${note.id}`);
+    if (this.coloring?.id === note.id) return this.colorRow(note);
     if (this.confirming === note.id) {
       return h_flex().id(`float-note-${note.id}`).h(31).pl(9).pr(4).gap(6).flex_none().items_center().rounded(7).bg(t.selected)
         .child(div().flex_1().min_w(0).truncate().child("Delete this note?"))
@@ -755,6 +828,11 @@ export default class FloatSpace extends View {
       .on_click(() => this.showNote(current => selectNote(current, note.id)))
       .child(note.id === doc.active ? svg("mods/float-space/check.svg").size(14).flex_none() : div().size(14).flex_none())
       .child(div().flex_1().min_w(0).truncate().child(note.name))
+      .child(h_flex().id(`float-note-paint-${note.id}`).size(22).flex_none().items_center().justify_center().rounded(6)
+        .cursor_pointer().hover(s => s.bg(t.hover))
+        .tooltip("Note color").accessibility_label(`Color of ${note.name}`)
+        .on_click((_e, cx) => { cx.stop_propagation(); this.startColor(note.id); cx.notify(); })
+        .child(colorDot(t, noteColor(note), 12)))
       .child(this.rowButton(`float-note-rename-${note.id}`, "rename", `Rename ${note.name}`, () => this.startEdit(note.id)))
       .when(doc.notes.length > 1, el => el.child(this.rowButton(`float-note-remove-${note.id}`, "close", `Delete ${note.name}`, () => this.askDelete(note.id))));
   }
@@ -856,26 +934,32 @@ export default class FloatSpace extends View {
     const t = theme();
     const ring = windowShared().keyboard ? t.accent : t.input;
     if (this.copyProps.side === "bottom") {
-      return div().size_full().bg(t.background).border_b(1).border_l(1).border_r(1).rounded_b(10).border_color(ring);
+      const doc = notesMemory().doc;
+      const notes = doc && readState(shared(STATE_KEY)).page === "notes";
+      const fill = notes ? notesLook(t, activeNote(doc)).background : t.background;
+      return div().size_full().bg(fill).border_b(1).border_l(1).border_r(1).rounded_b(10).border_color(ring);
     }
     return div().size_full().bg(ring);
   }
 
   // The terminals' font and size from Herdr's settings, so Notes reads like the
-  // terminal tabs beside it. Nothing shows until the notes file has been read.
+  // terminal tabs beside it, on the note's color when it has one. Nothing
+  // shows until the notes file has been read.
   renderNotes() {
     const t = theme();
     const look = settings();
     const memory = notesMemory();
-    const surface = v_flex().id("float-notes").size_full().min_h(0).bg(t.background).text_color(t.foreground)
+    const ready = Boolean(memory.doc && this.noteId);
+    const paper = notesLook(t, ready ? memory.doc.notes.find(note => note.id === this.noteId) : null);
+    const surface = v_flex().id("float-notes").size_full().min_h(0).bg(paper.background).text_color(paper.foreground)
       .on_mouse_down("left", stop);
-    if (!memory.doc || !this.noteId) {
+    if (!ready) {
       return surface.when(Boolean(memory.error), el => el.child(v_flex().px(16).py(14).gap(6).text_size(12)
         .child(div().text_color(t.muted).child(memory.error.message))
         .child(div().text_color(t.dim).child(`Fix or move ${notesFile()}. Notes opens once it can read it.`))));
     }
     return surface
-      .child(Textarea.new(this.notes).flex_1().min_h(0).w_full().px(16).py(14).bg(t.background).text_color(t.foreground)
+      .child(Textarea.new(this.notes).flex_1().min_h(0).w_full().px(16).py(14).bg(paper.background).text_color(paper.foreground)
         .font_family(look.font_family ?? "JetBrains Mono").text_size(look.font_size ?? 14));
   }
 

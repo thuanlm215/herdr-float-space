@@ -44,7 +44,9 @@ their programs still running, returning the keyboard to the pane underneath.
 - **The notes menu**, a 248px popup on `popover` opened under the Notes tab
   at its left edge, 5px padding, 12.8px type, like Herdr's menus. One 31px
   row per note with 7px corners: a 14px check for the open note (a blank
-  14px slot otherwise), the name truncated, then 22px rename (pencil) and
+  14px slot otherwise), the name truncated, then a 22px color button (a 12px
+  dot in the note's color, or a `dim` ring on `background` for the theme's;
+  `hover` under the pointer) and 22px rename (pencil) and
   delete (×) buttons with 13px icons in `dim` (`foreground` under the
   pointer); no delete when only one note is left. Rows get `hover` under the
   pointer and `selected` for the keyboard's row. A 1px `border` line, then
@@ -52,7 +54,21 @@ their programs still running, returning the keyboard to the pane underneath.
   once there are five. Renaming or naming a new note puts a 25px input in
   the row (6px corners, `accent` outline, `background`). Deleting a note
   with text asks in the row: "Delete this note?" with a solid **Delete** and
-  a raised **Cancel**, 22px tall.
+  a raised **Cancel**, 22px tall. Choosing a color puts the colors in the
+  row on `selected`, 4px apart: Theme, then White `#d1d4d9`, Black
+  `#2c2f33`, Red `#fac9c7`, Orange `#f6cdb1`, Yellow `#e2d4a8`, Green
+  `#bcddc2`, Blue `#bcd7f0`, Pink `#f2cadb` (pastels of one brightness,
+  Black aside), each a 14px dot in a 20px 2px
+  ring: `accent` for the note's color, `dim` for the keyboard's, otherwise
+  invisible (`foreground` under the pointer); each has its name as tooltip.
+- **A colored note**: the Notes page and the window's 10px bottom band take
+  its fill, the text its ink (`#2a2c31` on White, `#d5d8de` on Black, a dark
+  shade of the fill on the others), the same in light and dark themes. The
+  caret and the selection are Herdr's (a mod can't set them): in a dark
+  theme a near-white caret and a 40% white selection, faint on every pastel
+  (contrast 1.3 and 1.18). The
+  Notes tab shows the color as an 8px square with 2px corners before the
+  chevron. The header and the window border keep the theme's colors.
 - **Window size**, a 280px popup on `popover` opened under its button, 14px
   padding, 10px gaps, 12px type:
   - "Window size" in medium weight.
@@ -154,6 +170,11 @@ their programs still running, returning the keyboard to the pane underneath.
   ("Note <n>" for a new note).
   At most five notes; the last one can't be deleted. Header shortcuts do
   nothing while the menu is open.
+- **Note colors**: the dot on a row shows the note's colors in place of the
+  row, the menu staying open. Picking one (click, or ←/→ then Enter)
+  saves it as the note's `color` in the notes file and shows the row again;
+  **Theme** removes it. A note without a color, or with one this version
+  doesn't know, follows the theme.
 - **Outside edits**: the notes file is read again whenever Notes or the menu
   opens and nothing typed is waiting to be saved, so a change made by an
   agent or an editor shows then. A save that finds the file changed by
