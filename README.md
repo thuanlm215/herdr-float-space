@@ -58,9 +58,11 @@ again and you're back where you were. Your layout stays as it is.
   versions of Float Space drop the color when they save.
 - **Window size** (diagonal arrows) has three presets: **Small** (25% × 50%,
   for notes or a quick command), **Normal** (50% × 60%, the default) and
-  **Large** (85% × 88%, room for an agent). Sliders set any other size;
-  **Apply** keeps it. Each size opens centered the first time and then
-  wherever you last dragged it. Drag free header space to move the window.
+  **Large** (85% × 88%, room for an agent). Sliders set any other size
+  from 15% to 95%; **Apply** keeps it, and **Custom** beside the presets
+  brings back the last such size in one click. Each size opens centered the
+  first time and then wherever you last dragged it. Drag free header space to
+  move the window.
 - **−** hides the window and leaves shells and their programs running. The
   selected tab's **×** ends its terminal at once, like closing a tab in
   Herdr. When a terminal ends, the window shows the next tab, or Notes after

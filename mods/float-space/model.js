@@ -1,8 +1,11 @@
 export const STATE_KEY = "float-space.v1";
 export const MAX_TERMINALS = 12;
 export const DEFAULT_SIZE = { width: 0.50, height: 0.60 };
+// A window's width and height, as fractions of the app's.
+export const MIN_SIZE = 0.15;
+export const MAX_SIZE = 0.95;
 // One click sizes: a small window for notes or a quick command, the default,
-// and room for an agent.
+// and room for an agent. Custom, beside them, is the last other size used.
 export const PRESETS = [
   { id: "small", label: "Small", width: 0.25, height: 0.50 },
   { id: "normal", label: "Normal", ...DEFAULT_SIZE },
@@ -16,9 +19,29 @@ function fraction(value, fallback, min, max) {
 
 export function readSize(value) {
   return {
-    width: fraction(value?.width, DEFAULT_SIZE.width, 0.20, 0.95),
-    height: fraction(value?.height, DEFAULT_SIZE.height, 0.30, 0.95),
+    width: fraction(value?.width, DEFAULT_SIZE.width, MIN_SIZE, MAX_SIZE),
+    height: fraction(value?.height, DEFAULT_SIZE.height, MIN_SIZE, MAX_SIZE),
   };
+}
+
+export function sameSize(a, b) {
+  return a === b || (Boolean(a && b) && a.width === b.width && a.height === b.height);
+}
+
+export function isPreset(size) {
+  return PRESETS.some(preset => sameSize(preset, size));
+}
+
+// The Custom size: saved, or the current size when it is no preset (state
+// from before Custom existed); null until a size other than a preset is used.
+function readCustom(value, size) {
+  const custom = value?.custom;
+  if (typeof custom?.width === "number" && Number.isFinite(custom.width)
+    && typeof custom?.height === "number" && Number.isFinite(custom.height)) {
+    const read = readSize(custom);
+    return isPreset(read) ? null : read;
+  }
+  return isPreset(size) ? null : size;
 }
 
 export function ownedTerminals(terminals, appHome) {
@@ -48,6 +71,7 @@ export function readState(value) {
     ...(typeof value?.notes === "string" && value.notes !== "" ? { notes: value.notes } : {}),
     page: value?.page === "notes" ? "notes" : "terminal",
     size,
+    custom: readCustom(value, size),
     sequence: Math.max(tabs.length, Number.isSafeInteger(value?.sequence) ? value.sequence : 0),
   };
 }

@@ -69,14 +69,16 @@ their programs still running, returning the keyboard to the pane underneath.
   (contrast 1.3 and 1.18). The
   Notes tab shows the color as an 8px square with 2px corners before the
   chevron. The header and the window border keep the theme's colors.
-- **Window size**, a 280px popup on `popover` opened under its button, 14px
+- **Window size**, a 300px popup on `popover` opened under its button, 14px
   padding, 10px gaps, 12px type:
   - "Window size" in medium weight.
-  - Three presets side by side, each a 6px-corner box with the name and an
-    11px `dim` size: Small 25 × 50, Normal 50 × 60, Large 85 × 88. The one
-    matching the current size has an `accent` outline on `selected`; the
-    others an `input` outline on `raised`.
-  - Width (20–95%) and Height (30–95%), each a label with its value ("50%",
+  - Three presets and Custom side by side, each a 6px-corner box with the
+    name and an 11px `dim` size: Small 25 × 50, Normal 50 × 60, Large
+    85 × 88, and Custom with the last size used that is no preset, or "—"
+    with a `dim` name before there is one. The one matching the current size
+    has an `accent` outline on `selected`; the others an `input` outline on
+    `raised`.
+  - Width and Height (15–95%), each a label with its value ("50%",
     `muted`) on the right and a native slider below: a 4px groove in
     `border`, the filled part in `accent`, a 12px `foreground` thumb centered
     on the groove.
@@ -183,6 +185,8 @@ their programs still running, returning the keyboard to the pane underneath.
 - **Window size**: a preset applies at once and closes the popup. The
   sliders show their value while dragging but change nothing until Apply;
   Reset puts 50 × 60 in the sliders; Escape or a click outside cancels.
+  Any size applied that is no preset becomes Custom, which then applies in
+  one click like a preset; Custom does nothing until there is one.
   Pressing the size button again closes the popup. A new size opens centered
   the first time and afterwards wherever it was last dropped, so a Small
   window can stay in a corner while Normal stays in the middle.
@@ -266,7 +270,9 @@ their programs still running, returning the keyboard to the pane underneath.
   `herdr.mod=float-space` and `herdr.float-space=<app home>`.
 - **Saved state**: shared key `float-space.v1`, `{version: 2, tabs:
   [{address, title}], active, page: "terminal" | "notes", size:
-  {width, height}, sequence}`; a `notes` string from an earlier version is
+  {width, height}, custom: {width, height} | null, sequence}`; `custom` is
+  the last size used that is no preset (missing in older state: the current
+  size when it is no preset). A `notes` string from an earlier version is
   carried along untouched until it has been moved.
 - **Notes file**: `<app home>/data/float-space/notes.json` (Herdr makes
   `data/<mod>` for every mod), two-space indented JSON with a trailing
@@ -398,7 +404,8 @@ their programs still running, returning the keyboard to the pane underneath.
   is refused. A Notes page left in `shared.json` by an earlier version shows
   as the note "Notes" and leaves `shared.json`.
 - Small, Normal and Large apply in one click and fit inside the app; the
-  sliders change nothing until Apply.
+  sliders change nothing until Apply. Custom brings back the last size
+  applied with the sliders, also after a restart.
 - The border is `accent` all the way round after clicking the window's
   terminal, Notes or a header tab, and `input` after clicking a pane outside.
 - With the window hidden and the button in the layout, an agent probe shows

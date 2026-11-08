@@ -1,7 +1,7 @@
 import { View, div, svg, image } from "gpui-kit";
 import { HoverCard, h_flex, v_flex, TextareaState, Textarea, InputState, Input, SliderState, Slider, SliderTrack, SliderIndicator, SliderThumb } from "gpui-base";
 import { appHome, home, hc, focused, spaces, panes, terminals, shared, setShared, settings, props, theme, run, openOverlay, closeOverlay, notify, playSound, nextCommand, readTextFile, writeTextFile, window as app } from "herdr";
-import { STATE_KEY, DEFAULT_SIZE, PRESETS, readState, ownedTerminals, tabName, tabProgram, liveStatus, pressedInWindow, agentAlerts, unseenFinishes, tabStatus, startFolder } from "./model.js";
+import { STATE_KEY, DEFAULT_SIZE, MIN_SIZE, MAX_SIZE, PRESETS, sameSize, readState, ownedTerminals, tabName, tabProgram, liveStatus, pressedInWindow, agentAlerts, unseenFinishes, tabStatus, startFolder } from "./model.js";
 import { MAX_NOTES, NOTE_COLORS, notesPath, parseNotes, serializeNotes, firstNotes, adoptLegacy, activeNote, nextNoteName, addNote, renameNote, removeNote, selectNote, setNoteText, setNoteColor, noteColor } from "./notes.js";
 import { FloatController } from "./controller.js";
 
@@ -367,8 +367,8 @@ export default class FloatSpace extends View {
       globalThis[SIZE_POPUP] = { overlay: this.copyProps.overlay };
       const size = readState(shared(STATE_KEY)).size;
       this.sliders = {};
-      for (const [key, min, max] of [["width", 20, 95], ["height", 30, 95]]) {
-        const slider = SliderState.new({ min, max, step: 1, value: Math.round(size[key] * 100) });
+      for (const key of ["width", "height"]) {
+        const slider = SliderState.new({ min: Math.round(MIN_SIZE * 100), max: Math.round(MAX_SIZE * 100), step: 1, value: Math.round(size[key] * 100) });
         slider.on("change", (_value, cx) => cx.notify());
         this.sliders[key] = slider;
       }
@@ -652,8 +652,8 @@ export default class FloatSpace extends View {
       if (popup?.overlay) closeOverlay(popup.overlay);
       return;
     }
-    const at = this.pointer ? { x: Math.max(0, this.pointer.x - 260), y: this.pointer.y + 16 } : "pointer";
-    openOverlay({ mod: "float-space", props: { role: "size" }, kind: "popup", width: 280, at });
+    const at = this.pointer ? { x: Math.max(0, this.pointer.x - 280), y: this.pointer.y + 16 } : "pointer";
+    openOverlay({ mod: "float-space", props: { role: "size" }, kind: "popup", width: 300, at });
   }
 
   applySize(width, height) {
@@ -965,16 +965,22 @@ export default class FloatSpace extends View {
 
   renderSize() {
     const t = theme();
-    const current = readState(shared(STATE_KEY)).size;
+    const { size: current, custom } = readState(shared(STATE_KEY));
+    const percent = size => `${Math.round(size.width * 100)} × ${Math.round(size.height * 100)}`;
+    // Custom is the last size other than a preset; until there is one it
+    // shows a dash and does nothing.
+    const choices = [...PRESETS, { id: "custom", label: "Custom", ...(custom ?? {}) }];
     return v_flex().w_full().p(14).gap(10).bg(t.popover).text_color(t.foreground).text_size(12)
       .child(div().font_medium().child("Window size"))
-      .child(h_flex().gap(6).children(PRESETS.map(preset => {
-        const on = current.width === preset.width && current.height === preset.height;
-        return v_flex().id(`float-preset-${preset.id}`).flex_1().py(6).items_center().rounded(6).border_1()
-          .border_color(on ? t.accent : t.input).bg(on ? t.selected : t.raised).cursor_pointer().hover(s => s.bg(t.hover))
-          .on_mouse_down("left", stop).on_click(() => this.applySize(Math.round(preset.width * 100), Math.round(preset.height * 100)))
-          .child(div().child(preset.label))
-          .child(div().text_size(11).text_color(t.dim).child(`${Math.round(preset.width * 100)} × ${Math.round(preset.height * 100)}`));
+      .child(h_flex().gap(6).children(choices.map(choice => {
+        const ready = choice.width !== undefined;
+        const on = ready && sameSize(current, choice);
+        return v_flex().id(`float-preset-${choice.id}`).flex_1().py(6).items_center().rounded(6).border_1()
+          .border_color(on ? t.accent : t.input).bg(on ? t.selected : t.raised)
+          .when(ready, el => el.cursor_pointer().hover(s => s.bg(t.hover))
+            .on_mouse_down("left", stop).on_click(() => this.applySize(Math.round(choice.width * 100), Math.round(choice.height * 100))))
+          .child(div().text_color(ready ? t.foreground : t.dim).child(choice.label))
+          .child(div().text_size(11).text_color(t.dim).child(ready ? percent(choice) : "—"));
       })))
       .children([["width", "Width"], ["height", "Height"]].map(([key, label]) => {
         const slider = this.sliders[key];

@@ -254,7 +254,7 @@ test("live ownership requires both labels, local address and running state", () 
 test("missing and invalid window sizes become bounded usable values", () => {
   assert.deepEqual(readState({ notes: "legacy draft" }).size, DEFAULT_SIZE);
   const state = readState({ size: { width: NaN, height: -1, notes: 100 }, notes: "draft" });
-  assert.deepEqual(state.size, { width: DEFAULT_SIZE.width, height: 0.30 });
+  assert.deepEqual(state.size, { width: DEFAULT_SIZE.width, height: 0.15 });
   assert.equal(state.notes, "draft");
 });
 

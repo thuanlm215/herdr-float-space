@@ -1,4 +1,4 @@
-import { readState, readSize, reconcile, returnPane, shownTerminal, windowSpec, nextTitle, MAX_TERMINALS } from "./model.js";
+import { readState, readSize, sameSize, isPreset, reconcile, returnPane, shownTerminal, windowSpec, nextTitle, MAX_TERMINALS } from "./model.js";
 
 // The one floating window's lifecycle. Copies share one controller and run its
 // commands one at a time, so rapid toggles cannot spawn duplicate shells.
@@ -182,9 +182,12 @@ export class FloatController {
       const [width, height] = command.slice(7).split("-").map(value => Number(value) / 100);
       const state = this.state(host);
       const size = readSize({ width, height });
-      if (JSON.stringify(size) === JSON.stringify(state.size)) return;
-      this.patch(host, { size });
-      if (this.overlay) this.mount(host);
+      // Any size other than a preset becomes the Custom one.
+      const custom = isPreset(size) ? state.custom : size;
+      const resized = !sameSize(size, state.size);
+      if (!resized && sameSize(custom, state.custom)) return;
+      this.patch(host, { size, custom });
+      if (resized && this.overlay) this.mount(host);
     } else if (command.startsWith("select-")) {
       const address = command.slice(7);
       if (address === this.state(host).active && this.state(host).page === "terminal") return;
