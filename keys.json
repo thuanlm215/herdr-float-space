@@ -1,6 +1,9 @@
 {
   "global": { "ctrl-shift-space": "mod.open:float-space" },
-  "terminal": { "ctrl-shift-space": "mod.open:float-space" },
+  "terminal": {
+    "ctrl-shift-space": "mod.open:float-space",
+    "ctrl-shift-t": "mod.open:float-space-new"
+  },
   "mod:float-space": {
     "ctrl-shift-space": "mod.open:float-space",
     "ctrl-tab": "float-space.next",

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { FloatController } from "../mods/float-space/controller.js";
-import { readState, reconcile, returnPane, ownedTerminals, tabName, tabProgram, liveStatus, pressedInWindow, DEFAULT_SIZE, PRESETS, windowSpec, nextTitle, agentAlerts, unseenFinishes, tabStatus, startFolder } from "../mods/float-space/model.js";
+import { readState, reconcile, returnPane, ownedTerminals, tabName, tabProgram, liveStatus, DEFAULT_SIZE, PRESETS, windowSpec, nextTitle, agentAlerts, unseenFinishes, tabStatus, startFolder } from "../mods/float-space/model.js";
 
 // The block a window shows under its header: a terminal or Notes.
 function body(spec) {
@@ -428,17 +428,6 @@ test("presets: a small window, the default, a large one, all within bounds", () 
   }
   assert.deepEqual({ width: PRESETS[0].width, height: PRESETS[0].height }, { width: 0.25, height: 0.50 });
   assert.ok(PRESETS[2].width > PRESETS[1].width && PRESETS[2].height > PRESETS[1].height);
-});
-
-test("a press counts as inside the window from its border to its bottom edge", () => {
-  const bar = { x: 100, y: 50, width: 400, height: 30 };
-  assert.equal(pressedInWindow({ x: 300, y: 200 }, bar, 300), true);
-  assert.equal(pressedInWindow({ x: 99, y: 49 }, bar, 300), true);
-  assert.equal(pressedInWindow({ x: 300, y: 349 }, bar, 300), true);
-  assert.equal(pressedInWindow({ x: 300, y: 351 }, bar, 300), false);
-  assert.equal(pressedInWindow({ x: 98, y: 200 }, bar, 300), false);
-  assert.equal(pressedInWindow({ x: 502, y: 200 }, bar, 300), false);
-  assert.equal(pressedInWindow({ x: 300, y: 20 }, bar, 300), false);
 });
 
 test("the header's close after Herdr ended its terminal shows the next tab at once", async () => {

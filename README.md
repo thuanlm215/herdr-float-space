@@ -11,12 +11,12 @@ again and you're back where you were. Your layout stays as it is.
 
 - **Ctrl+Shift+Space** shows/hides it, in any layout.
 - With the **header or Notes focused**, **Ctrl+Tab** / **Ctrl+Shift+Tab**
-  cycle through Notes and terminal tabs, **Ctrl+Shift+T** adds a shell, and
-  **Ctrl+Shift+N** opens Notes. Notes takes the keyboard when opened.
-  These bindings are scoped to the mod: when typing in an embedded terminal,
-  Herdr's terminal/workspace bindings still apply. Click the header to use
-  Float Space's tab shortcuts; Herdr 0.1.11 has no separate key context for
-  an overlay terminal.
+  cycle through Notes and terminal tabs, and **Ctrl+Shift+N** opens Notes.
+  Notes takes the keyboard when opened. Click the header to use these
+  shortcuts from a terminal; floating terminals have Herdr's terminal context.
+- **Ctrl+Shift+T** adds a terminal to Float while its terminal, header or Notes
+  has the keyboard. In a normal workspace terminal, it creates a regular tab,
+  also while Float is hidden or when the layout has no Float button.
 - Click a terminal to type. **+** adds another shell, starting in the folder
   the open space's terminal is in now (up to 12), the same place a new Herdr
   tab starts. A space on another machine starts in your home directory.
@@ -38,9 +38,9 @@ again and you're back where you were. Your layout stays as it is.
   when an agent finished and you haven't seen it yet. It goes away once that
   tab shows in the open window while Herdr is the active app.
 - While the keyboard is in Float Space (its terminal, Notes or header), its
-  border turns your theme's accent color; clicking outside turns it back.
-  Herdr keeps drawing the pane underneath as focused too; Float's border is
-  the one to trust.
+  border turns your theme's accent color. It follows actual keyboard focus,
+  including changes made by keys or commands, and dims when another pane,
+  a popup or another app has the keyboard.
 - **Notes** leads the header and can't be closed. It holds up to five named
   notes, shared across spaces, in your terminal font and size. The tab shows
   the open note's name; its chevron (or a click on the tab while Notes
@@ -70,9 +70,9 @@ again and you're back where you were. Your layout stays as it is.
 
 ## Install
 
-Requires the Herdr desktop app and `hc`. Tested on Linux with Herdr
-**0.1.11** and core **0.1.16** (first built on 0.1.10 / 0.1.15); macOS and
-Windows have not been tested.
+Requires Herdr desktop **0.1.14 or newer** and `hc`: this version reports
+keyboard focus in floating terminals. Earlier builds were tested on Linux
+with Herdr 0.1.11 and core 0.1.16; macOS and Windows have not been tested.
 
 Float Space runs `hc` to start, list and end its own shells, and keeps Notes
 as plaintext in its own file, `~/.config/herdr-app/data/float-space/notes.json`.
@@ -97,8 +97,8 @@ under `~/.config/herdr-app/backups/float-space/`. It never touches a layout.
 overwrite files you edited. `--app-home <folder>` picks another Herdr home.
 No restart is needed.
 
-**By hand:** copy `mods/float-space` into `~/.config/herdr-app/mods/` and add
-the bindings from `keys.json` to yours.
+**By hand:** copy `mods/float-space` and `mods/float-space-new` into
+`~/.config/herdr-app/mods/` and add the bindings from `keys.json` to yours.
 
 **Optional status-bar button**, if you keep a personal layout (a clone made
 with "Duplicate layout"): put this block beside its `status` block. Besides
@@ -179,10 +179,12 @@ app. See [CONTRIBUTING.md](CONTRIBUTING.md) before sending a change.
 
 ## Remove
 
-Hide Float Space, remove its `ctrl-shift-space` bindings and the
-`mod:float-space` section from `keys.json`
+Hide Float Space, remove its `ctrl-shift-space` bindings, the
+`terminal` section's `ctrl-shift-t` binding and the `mod:float-space` section
+from `keys.json`
 (and the button block, if you added one), then delete
-`~/.config/herdr-app/mods/float-space`. Notes and shells stay (delete
+`~/.config/herdr-app/mods/float-space` and `mods/float-space-new` from the
+same app folder. Notes and shells stay (delete
 `~/.config/herdr-app/data/float-space/notes.json` to remove the notes). To end the
 shells too, close their tabs first, or list them with
 `hc ls --json --label herdr.mod=float-space` and end only the ones whose

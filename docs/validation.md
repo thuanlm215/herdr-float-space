@@ -1,5 +1,70 @@
 # Validation
 
+## Focus on Herdr 0.1.14, 2026-11-09
+
+Checked on Linux with Herdr app 0.1.14 and core 0.1.19:
+
+- 76 Node tests and 8 installer tests pass, plus `herdr-app check` for both
+  `float-space` and `float-space-new`.
+- Ten view-level focus regressions cover returning to the original pane,
+  tracking the shown terminal only, stale Notes focus, native changes that
+  don't redraw the header, and border copies recreated after hot reload.
+  A stopped copy's focus promise can't block publication, and unchanged
+  timer ticks don't publish or request redraws.
+- In a disposable app home, core session and Xvfb display, native mouse and
+  keyboard input plus app commands exercised header → pane → Float terminal
+  → original pane, Notes focus and blur, leaving/returning to the app, and
+  hiding the window. The border followed focus throughout; a shell marker
+  confirmed typing after `pane.focus` reached the background pane.
+- Screenshots were inspected for the terminal, Notes and inactive window.
+  The sandbox ended with no mod errors and no overlays; its app, core and
+  display were stopped afterwards.
+
+The first pass observed computed focus via a shared-state probe and used
+`pane.focus` to return to the pane. It didn't establish every mouse-focus
+transition or border repaint. An uninstrumented check with the persistent
+launcher reproduced a missed header redraw, so a 150 ms check of actual
+focus is retained. The click-position guess is not.
+
+The user then reproduced the problem on their running KDE Wayland desktop.
+A temporary trace showed that `focused()` correctly reported the Float
+terminal and the pane on successive clicks, but edge blocks retained their
+old colors after the header's cached and drawn state changed. The borders
+had waited on a promise shared across copies, including stopped copies.
+They now read one boolean, `float-space.focus.v1`, published with Herdr's
+shared-state API so the host refreshes every block. Only focus transitions
+publish; there are no extra writes for unchanged timer ticks. The temporary
+trace code was removed after diagnosis.
+
+Further Xvfb checks use the exact source files, without instrumentation or
+probe writes, and inspect all four border edges through repeated clicks,
+Notes-to-pane changes and directory-swap hot reloads. Xvfb covers the X11
+path; it doesn't substitute for the user's Wayland interaction.
+
+The user confirmed the focus border behaves correctly on their desktop,
+then reported that Ctrl+Shift+T inside the Float terminal created a tab in
+the workspace behind it. Herdr 0.1.14 gives floating terminals the Terminal
+key context, so a `mod:float-space` binding doesn't reach them.
+
+The terminal binding now opens `float-space-new`, which checks actual focus
+and ownership without depending on which tab has finished remounting. If a
+newly focused terminal is not in the live cache yet, core confirms its labels.
+The routing copy stays alive until Float acknowledges
+that its new terminal has been created and mounted. Closing the receiver
+right after dispatch was found to leave a newly spawned shell unadopted;
+the acknowledgement is covered by both a regression test and native input.
+
+With real key events in the isolated Xvfb app, Ctrl+Shift+T twice in the Float
+terminal added two owned terminals and no workspace tab. The new addresses
+appeared in Float's saved tab list, and no command overlays remained. From
+a workspace pane, with Float hidden, and in a layout without any Float copy,
+the same key added a normal tab and left the Float terminal count unchanged.
+Installer checks cover fresh install, upgrade from the old single-mod
+package, custom-key conflicts and rollback of both mods on a key-save error.
+
+This does not establish everyday keyboard feel on the user's desktop, or
+macOS/Windows behavior. Earlier checks below refer to their stated versions.
+
 Checked on 2026-10-31 with Herdr app 0.1.10, core 0.1.15, and re-checked on
 2026-11-01 with Herdr app 0.1.11, core 0.1.16 (see "Herdr 0.1.11"), on Linux
 (KDE Wayland), in the shipped `main` layout. This records technical checks;

@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Ctrl+Shift+T creates a terminal in Float when its terminal has the keyboard.
+  From a workspace terminal it still creates a regular tab, with Float open,
+  hidden or absent from the layout.
+- Focus follows Herdr 0.1.14's actual floating-terminal focus, plus the
+  header and Notes' native focus. Returning to a pane by a key or command
+  clears the window's accent border and restores agent alerts correctly.
+  The old click-position guess is gone; a 150 ms check reads real focus
+  because native focus changes don't always redraw the mod. It redraws
+  only on a change. A stale Notes focus flag can't keep a terminal tab's
+  border lit. The border also dims when Herdr loses focus. Requires Herdr
+  0.1.14 or newer.
+- All four border edges refresh from the same published focus state.
+  Closing, reopening or hot-reloading a copy can no longer strand the
+  border on the previous color through a stopped copy's focus promise.
 - Notes holds up to five named notes. The Notes tab shows the open note's
   name; its chevron opens a list to switch, add, rename or delete notes.
 - Notes are kept in `data/float-space/notes.json` in the app's folder

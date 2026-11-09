@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MOD_NAME = "float-space"
 MARKER = ".float-space-install.json"
 FILES = ("main.js", "controller.js", "model.js", "notes.js", "mod.json", "float.svg", "plus.svg", "notes.svg", "size.svg", "hide.svg", "spinner.svg", "close.svg", "chevron.svg", "check.svg", "rename.svg")
+MOD_FILES = {MOD_NAME: FILES, "float-space-new": ("main.js", "mod.json")}
 GENERATED = {"gpui-kit.d.ts", "jsconfig.json"}
 
 
@@ -69,16 +70,17 @@ def main():
     env = {**os.environ, "HERDR_APP_HOME": str(app)}
     keys_path = app / "keys.json"
     keys = merge_keys(json.loads(keys_path.read_text()), json.loads((ROOT / "keys.json").read_text()))
-    source = ROOT / "mods" / MOD_NAME
-    destination = app / "mods" / MOD_NAME
-    if destination.exists():
-        marker_path = destination / MARKER
-        if not args.update or not marker_path.exists():
-            raise ValueError(f"{destination} already exists. Use --update only for this installer's own files.")
-        marker = json.loads(marker_path.read_text())
-        verify_installed(destination, marker)
-    subprocess.run(["herdr-app", "check", str(source)], env=env, check=True)
-    print(f"Mod: {destination}\nShortcut: Ctrl+Shift+Space")
+    destinations = {name: app / "mods" / name for name in MOD_FILES}
+    for name, destination in destinations.items():
+        if destination.exists():
+            marker_path = destination / MARKER
+            if not args.update or not marker_path.exists():
+                raise ValueError(f"{destination} already exists. Use --update only for this installer's own files.")
+            verify_installed(destination, json.loads(marker_path.read_text()))
+        subprocess.run(["herdr-app", "check", str(ROOT / "mods" / name)], env=env, check=True)
+    for destination in destinations.values():
+        print(f"Mod: {destination}")
+    print("Shortcuts: Ctrl+Shift+Space, Ctrl+Shift+T")
     if args.dry_run:
         print("Dry run: no files changed.")
         return
@@ -86,34 +88,46 @@ def main():
     backup = app / "backups" / MOD_NAME / stamp
     backup.mkdir(parents=True)
     shutil.copy2(keys_path, backup / "keys.json")
-    if destination.exists():
-        shutil.copytree(destination, backup / MOD_NAME)
+    for name, destination in destinations.items():
+        if destination.exists():
+            shutil.copytree(destination, backup / name)
     stage = Path(tempfile.mkdtemp(prefix=".float-space-stage-", dir=app))
     previous = app / f".float-space-previous-{stamp}"
-    replaced = False
+    previous.mkdir()
+    replaced, moved = [], []
+    committed = rolled_back = False
     try:
-        for filename in FILES:
-            shutil.copy2(source / filename, stage / filename)
-        atomic_json(stage / MARKER, {
-            "package": "herdr-float-space", "version": "0.2.0",
-            "files": {filename: digest(source / filename) for filename in FILES},
-        })
-        if destination.exists():
-            destination.replace(previous)
-        stage.replace(destination)
-        replaced = True
+        for name, files in MOD_FILES.items():
+            source = ROOT / "mods" / name
+            staged = stage / name
+            staged.mkdir()
+            for filename in files:
+                shutil.copy2(source / filename, staged / filename)
+            atomic_json(staged / MARKER, {
+                "package": "herdr-float-space", "version": "0.2.0",
+                "files": {filename: digest(source / filename) for filename in files},
+            })
+        (app / "mods").mkdir(exist_ok=True)
+        for name, destination in destinations.items():
+            if destination.exists():
+                destination.replace(previous / name)
+                moved.append(name)
+            (stage / name).replace(destination)
+            replaced.append(name)
         atomic_json(keys_path, keys)
+        committed = True
     except Exception:
-        if replaced and destination.exists():
-            shutil.rmtree(destination)
-        if previous.exists():
-            previous.replace(destination)
+        for name in reversed(replaced):
+            shutil.rmtree(destinations[name])
+        for name in reversed(moved):
+            (previous / name).replace(destinations[name])
         shutil.copy2(backup / "keys.json", keys_path)
+        rolled_back = True
         raise
     finally:
         if stage.exists():
             shutil.rmtree(stage)
-        if previous.exists():
+        if (committed or rolled_back) and previous.exists():
             shutil.rmtree(previous)
     print(f"Installed. Backup: {backup}")
 

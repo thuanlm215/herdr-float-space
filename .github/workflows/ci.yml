@@ -23,7 +23,7 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm test
       - name: Syntax-check the view module
-        run: node --check mods/float-space/main.js
+        run: for f in mods/*/main.js; do node --check "$f" || exit 1; done
 
   python:
     name: Installer tests (Python ${{ matrix.python }})
@@ -46,7 +46,7 @@ jobs:
       - uses: actions/checkout@v7
       - name: JSON files parse
         run: |
-          for f in mods/float-space/mod.json keys.json package.json; do
+          for f in mods/*/mod.json keys.json package.json; do
             python3 -m json.tool "$f" > /dev/null || { echo "::error file=$f::invalid JSON"; exit 1; }
           done
       - name: Installer copies every file the mod ships
@@ -56,12 +56,13 @@ jobs:
           spec = importlib.util.spec_from_file_location("installer", "scripts/install.py")
           installer = importlib.util.module_from_spec(spec)
           spec.loader.exec_module(installer)
-          shipped = {p.name for p in pathlib.Path("mods/float-space").iterdir()} - installer.GENERATED
-          listed = set(installer.FILES)
-          if shipped != listed:
-              print(f"::error file=scripts/install.py::FILES differs from mods/float-space: "
-                    f"missing {sorted(shipped - listed)}, extra {sorted(listed - shipped)}")
-              sys.exit(1)
+          for name, files in installer.MOD_FILES.items():
+              shipped = {p.name for p in (pathlib.Path("mods") / name).iterdir()} - installer.GENERATED
+              listed = set(files)
+              if shipped != listed:
+                  print(f"::error file=scripts/install.py::MOD_FILES differs from mods/{name}: "
+                        f"missing {sorted(shipped - listed)}, extra {sorted(listed - shipped)}")
+                  sys.exit(1)
           EOF
       - name: Listing assets exist
         run: test -f RECIPE.md && test -f preview.png

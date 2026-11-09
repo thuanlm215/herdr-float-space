@@ -1,11 +1,12 @@
 import { View, div, svg, image } from "gpui-kit";
 import { HoverCard, h_flex, v_flex, TextareaState, Textarea, InputState, Input, SliderState, Slider, SliderTrack, SliderIndicator, SliderThumb } from "gpui-base";
 import { appHome, home, hc, focused, spaces, panes, terminals, shared, setShared, settings, props, theme, run, openOverlay, closeOverlay, notify, playSound, nextCommand, readTextFile, writeTextFile, window as app } from "herdr";
-import { STATE_KEY, DEFAULT_SIZE, MIN_SIZE, MAX_SIZE, PRESETS, sameSize, readState, ownedTerminals, tabName, tabProgram, liveStatus, pressedInWindow, agentAlerts, unseenFinishes, tabStatus, startFolder } from "./model.js";
+import { STATE_KEY, DEFAULT_SIZE, MIN_SIZE, MAX_SIZE, PRESETS, sameSize, readState, ownedTerminals, tabName, tabProgram, liveStatus, agentAlerts, unseenFinishes, tabStatus, startFolder } from "./model.js";
 import { MAX_NOTES, NOTE_COLORS, notesPath, parseNotes, serializeNotes, firstNotes, adoptLegacy, activeNote, nextNoteName, addNote, renameNote, removeNote, selectNote, setNoteText, setNoteColor, noteColor } from "./notes.js";
 import { FloatController } from "./controller.js";
 
 const WINDOW = "__herdr_float_space_window_v1";
+const FOCUS_KEY = "float-space.focus.v1";
 const SIZE_POPUP = "__herdr_float_space_size_v1";
 const NOTES = "__herdr_float_space_notes_v1";
 const NOTES_MENU = "__herdr_float_space_notes_menu_v1";
@@ -68,7 +69,7 @@ function release(owner) {
   if (memory.lease?.owner === owner) memory.lease = null;
 }
 
-async function executeCommand(command, owner, cx) {
+async function executeCommand(command, owner, cx, shortcut = false) {
   try {
     await claim(cx, owner);
     await windowShared().controller.handle(command, host());
@@ -76,36 +77,19 @@ async function executeCommand(command, owner, cx) {
     notify({ title: "Float Space", body: String(error?.message ?? error), level: "error" });
   } finally {
     release(owner);
+    if (shortcut) run("float-space-new.finished");
     closeOverlay(owner);
   }
 }
 
 function stop(_event, cx) { cx.stop_propagation(); }
 
-// The header and the edge blocks draw one border. Each waits on the same
-// change in a task of its own (a task's `cx.notify()` redraws its view even
-// when another view woke it), so all four redraw together.
+// Herdr refreshes every copy on a shared-state change. Use that lifecycle-safe
+// signal for the four border blocks: a promise owned by a closed/reloaded
+// copy can strand other copies' waiters. Unchanged focus never requests a redraw.
 function showFocus(keyboard) {
-  const memory = windowShared();
-  if (memory.keyboard === keyboard) return;
-  memory.keyboard = keyboard;
-  memory.focusChanged?.resolve();
-  memory.focusChanged = null;
-}
-
-function drawsBorder(cx) {
-  cx.spawn(async cx => {
-    for (;;) {
-      const memory = windowShared();
-      if (!memory.focusChanged) {
-        let resolve;
-        const promise = new Promise(done => { resolve = done; });
-        memory.focusChanged = { promise, resolve };
-      }
-      await memory.focusChanged.promise;
-      cx.notify();
-    }
-  });
+  windowShared().keyboard = keyboard;
+  if (shared(FOCUS_KEY) !== keyboard) setShared(FOCUS_KEY, keyboard);
 }
 
 // Notes, in memory for every copy and across reloads like the controller, and
@@ -300,11 +284,7 @@ function watchesAgents(view, cx) {
 
 // A press on the header's own controls puts the keyboard in the window too.
 function grab(view) {
-  return (_event, cx) => { cx.stop_propagation(); view.headerClicked = true; view.handle?.focus(); showFocus(true); };
-}
-function focusKey() {
-  const now = focused();
-  return `${now?.pane}|${now?.terminal}`;
+  return (_event, cx) => { cx.stop_propagation(); view.handle?.focus(); };
 }
 // The icon from the app's program table: a one-color glyph or a picture.
 function programIcon(program, color) {
@@ -341,7 +321,7 @@ export default class FloatSpace extends View {
     this.role = role ?? (this.copyProps.overlay ? "run" : "launcher");
     if (this.role === "run") {
       const owner = this.copyProps.overlay;
-      cx.spawn(cx => executeCommand(this.copyProps.command ?? "toggle", owner, cx));
+      cx.spawn(cx => executeCommand(this.copyProps.command ?? "toggle", owner, cx, this.copyProps.shortcut === true));
     } else if (this.role === "alert") {
       const { overlay, address, title, level } = this.copyProps;
       const command = `alert-${overlay}`;
@@ -415,9 +395,10 @@ export default class FloatSpace extends View {
         this.pendingSave?.cancel();
         this.pendingSave = cx.timer.after(400, () => this.saveNote());
       });
-      this.notes.on("focus", () => { windowShared().notesFocused = true; showFocus(true); });
+      this.notes.on("focus", () => { windowShared().notesFocused = true; showFocus(app().active); });
       this.notes.on("blur", () => {
         windowShared().notesFocused = false;
+        showFocus(false);
         if (this.pendingSave) this.saveNote();
       });
       followsNotes(cx, cx => this.followNote(cx));
@@ -439,13 +420,10 @@ export default class FloatSpace extends View {
       }
     } else if (this.role === "bar") {
       this.handle = cx.focus_handle();
-      this.headerClicked = false;
       const state = readState(shared(STATE_KEY));
       // Safety guard: hold keyboard in Float Space to prevent keystrokes
-      // from leaking to the background pane. Do NOT mark border accent;
-      // border stays neutral until the user clicks into the terminal.
+      // from leaking to the background pane until the terminal is clicked.
       if (state.page !== "notes") cx.timer.after(0, () => this.handle.focus());
-      drawsBorder(cx);
       // The Notes tab shows the shown note's name.
       followsNotes(cx);
       cx.spawn(cx => ensureNotes(cx));
@@ -457,8 +435,9 @@ export default class FloatSpace extends View {
         const notes = notesMemory();
         if (notes.doc && serializeNotes(notes.doc) !== notes.disk) flushNotes();
       });
-      // Presses update the border at once; this catches the rest, such as
-      // Herdr focusing another pane from the keyboard.
+      // Native focus can change without changing Herdr's live snapshot or
+      // rerunning this view. Read the real focus anyway; showFocus wakes the
+      // border only when the answer changes, never on an unchanged tick.
       cx.timer.every(150, () => showFocus(this.keyboard()));
       watchesAgents(this, cx);
       // Only the header consumes navigation commands. Other shown copies
@@ -473,7 +452,6 @@ export default class FloatSpace extends View {
         }
       });
     } else if (this.role === "edge") {
-      drawsBorder(cx);
       // The bottom band takes the shown note's color.
       if (this.copyProps.side === "bottom") followsNotes(cx);
     } else if (this.role === "launcher") {
@@ -484,29 +462,20 @@ export default class FloatSpace extends View {
   }
 
   canNavigate() {
-    return this.handle?.is_focused() || this.keyboard();
+    return this.keyboard();
   }
 
   // Whether typing goes into this window: its header, Notes or its terminal.
-  // Herdr keeps the pane underneath marked focused in all three cases, and
-  // `focused()` doesn't report a terminal in an overlay, so a press inside the
-  // window counts until a press elsewhere or Herdr focusing another pane.
+  // Since Herdr 0.1.14, focused() reports a window terminal with pane: null.
+  // Native focus and blur cover the mod's own header and Notes.
   keyboard() {
-    if (windowShared().notesFocused) return true;
-    if (this.pressedIn && this.pressedIn === focusKey()) return true;
-    if (this.headerClicked && this.handle?.is_focused()) return true;
+    // Read live focus on every path, including while the header holds it,
+    // so this copy subscribes before the keyboard moves to a terminal.
     const now = focused();
-    return !now?.pane && readState(shared(STATE_KEY)).tabs.some(tab => tab.address === now?.terminal);
-  }
-
-  // Any press outside the header: in the window's body, or anywhere else.
-  notePress(event) {
-    if (!event.bounds) return;
-    const height = readState(shared(STATE_KEY)).size.height * window.viewport_size().height;
-    const inside = pressedInWindow(event.position, event.bounds, height);
-    this.pressedIn = inside ? focusKey() : null;
-    this.headerClicked = false;
-    showFocus(inside);
+    const state = readState(shared(STATE_KEY));
+    if (!app().active) return false;
+    if (this.handle?.is_focused() || (state.page === "notes" && windowShared().notesFocused)) return true;
+    return state.page === "terminal" && state.active !== null && now?.pane === null && now.terminal === state.active;
   }
 
   saveNote() {
@@ -558,7 +527,6 @@ export default class FloatSpace extends View {
     // this copy, so it must not hand over to another copy.
     if (this.role === "bar") {
       if (this.copyProps.generation === windowShared().controller.generation) {
-        windowShared().keyboard = false;
         showFocus(false);
       }
       try { await windowShared().controller.windowClosed(host(), this.copyProps.generation); }
@@ -580,7 +548,7 @@ export default class FloatSpace extends View {
     return h_flex().id(id).size(22).items_center().justify_center().flex_none().rounded(6).text_color(t.dim)
       .cursor_pointer().hover(s => s.bg(t.hover).text_color(t.foreground))
       .tooltip(label).accessibility_label(label)
-      .on_mouse_down("left", (event, cx) => { cx.stop_propagation(); this.headerClicked = true; this.handle?.focus(); showFocus(true); this.pointer = event.position; press?.(); }).on_click(action)
+      .on_mouse_down("left", (event, cx) => { cx.stop_propagation(); this.handle?.focus(); this.pointer = event.position; press?.(); }).on_click(action)
       .child(svg(`mods/float-space/${icon}.svg`).size(14));
   }
 
@@ -893,7 +861,7 @@ export default class FloatSpace extends View {
     const state = readState(shared(STATE_KEY));
     const live = terminals();
     const notes = state.page === "notes";
-    const ring = windowShared().keyboard ? t.accent : t.input;
+    const ring = shared(FOCUS_KEY) === true ? t.accent : t.input;
     this.drawnMarks = windowShared().marks;
     const unseen = new Set(windowShared().unseen ?? []);
     // The shell entry as Herdr shows it now, so the person's programs.json applies.
@@ -916,8 +884,8 @@ export default class FloatSpace extends View {
     // Notes can't be closed, so it leads the header where a title would be; the
     // terminal tabs follow. Free strip space drags the window. The outer edge is
     // the top of the window's border; the line under the tabs stays neutral.
-    return v_flex().id("float-space-bar").track_focus(this.handle).on_mouse_down_out(event => this.notePress(event))
-      .on_mouse_down("left", () => { this.headerClicked = true; this.handle.focus(); showFocus(true); })
+    return v_flex().id("float-space-bar").track_focus(this.handle)
+      .on_mouse_down("left", () => this.handle.focus())
       .size_full().bg(t.background).border_t(1).border_l(1).border_r(1).rounded_t(10).border_color(ring)
       .child(h_flex().flex_1().min_h(0).px(6).gap(6).items_center().border_b(1).border_color(t.border)
       .text_color(t.foreground).text_size(12)
@@ -932,7 +900,7 @@ export default class FloatSpace extends View {
   // The window's sides and bottom, in the header's border color.
   renderEdge() {
     const t = theme();
-    const ring = windowShared().keyboard ? t.accent : t.input;
+    const ring = shared(FOCUS_KEY) === true ? t.accent : t.input;
     if (this.copyProps.side === "bottom") {
       const doc = notesMemory().doc;
       const notes = doc && readState(shared(STATE_KEY)).page === "notes";
@@ -1004,7 +972,12 @@ export default class FloatSpace extends View {
   }
 
   render() {
-    if (this.role === "bar") return this.renderBar();
+    if (this.role === "bar") {
+      // Publish before drawing when a live focus change redraws the view.
+      // The timer also covers native focus changes that don't redraw it.
+      showFocus(this.keyboard());
+      return this.renderBar();
+    }
     if (this.role === "notes") return this.renderNotes();
     if (this.role === "notes-menu") return this.renderNotesMenu();
     if (this.role === "size") return this.renderSize();

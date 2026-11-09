@@ -36,8 +36,9 @@ differ from its record.
 - `mods/float-space/controller.js`: the window's lifecycle (open, hide,
   reuse, recover, end a terminal) against a small host interface.
 - `mods/float-space/main.js`: views and the real Herdr and `hc` calls.
-- `scripts/install.py`: installer; its `FILES` list must name every file in
-  `mods/float-space/` (CI checks this).
+- `mods/float-space-new/`: the Ctrl+Shift+T routing entry for terminal focus.
+- `scripts/install.py`: installer; `MOD_FILES` must name every mod and each
+  file it ships (CI checks this).
 - `RECIPE.md` and `preview.png`: the herdr.dev listing. Keep them in step
   with what the mod does, in the section order the listing expects.
 - `docs/validation.md`: what was checked on the real app, and what wasn't.

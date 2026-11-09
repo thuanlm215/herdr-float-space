@@ -132,9 +132,12 @@ their programs still running, returning the keyboard to the pane underneath.
 - **Header/Notes shortcuts**: Ctrl+Tab goes to the next page,
   Ctrl+Shift+Tab to the previous, wrapping through Notes and the terminals
   in header order. Ctrl+Shift+T adds a shell; Ctrl+Shift+N opens Notes.
-  Bind these only under `mod:float-space`. Embedded terminals have Herdr's
-  `Terminal` key context, not the mod's, so their existing bindings remain.
-  Click the header before using Float Space's shortcuts from a terminal.
+  Bind these under `mod:float-space`. Embedded terminals have Herdr's
+  `Terminal` key context, so Ctrl+Tab/Shift+Tab and Ctrl+Shift+N still need
+  the header. Ctrl+Shift+T also works in the Float terminal: a short-lived
+  routing mod checks actual focus and ownership, then opens Float's existing
+  `new` command copy or runs the normal `tab.new`. The latter also works
+  when Float is hidden or absent from the layout. It never focuses itself.
 - The first opening starts a shell in the live folder of the terminal the
   open space is showing (where a new Herdr tab starts; the space's stored
   folder only if that terminal has none). Later openings show the tab that
@@ -150,7 +153,7 @@ their programs still running, returning the keyboard to the pane underneath.
 - **Hide** (− or the shortcut) never ends a terminal; the pane that had the
   keyboard before gets it back.
 - **Focus.** Notes immediately takes keyboard focus when opened or switched to.
-  In Herdr 0.1.12, overlay terminals do not take keyboard focus on open and
+  In Herdr 0.1.14, overlay terminals do not take keyboard focus on open and
   require a click to focus. The window marks keyboard focus: its whole border
   turns `accent` when typing goes into the window (Notes, header, or after
   clicking into an embedded terminal) and stays `input` otherwise. Hiding the
@@ -215,6 +218,12 @@ their programs still running, returning the keyboard to the pane underneath.
   `terminal` and `mod:float-space`. In `mod:float-space` only:
   `ctrl-tab` → `float-space.next`, `ctrl-shift-tab` → `float-space.prev`,
   `ctrl-shift-t` → `float-space.new`, `ctrl-shift-n` → `float-space.notes`.
+  Under `terminal`, `ctrl-shift-t` → `mod.open:float-space-new`; this routing
+  mod lives in `mods/float-space-new/` (`main.js`, `mod.json`) and closes
+  itself after routing. For Float, it waits for `float-space-new.finished`
+  from the `new` command copy before closing; ending it earlier can cancel
+  the first core reply before the new shell is adopted. Workspace/global
+  bindings remain unchanged.
 - **Copies by role** (`props().role`):
   - none with an `overlay` id (from `mod.open`), or `"run"` with a `command`:
     an invisible 1×1 window that runs one command (default `toggle`) and
@@ -309,30 +318,31 @@ their programs still running, returning the keyboard to the pane underneath.
 - Herdr reopens a window key where it was dropped even when a taller size
   doesn't fit there, so each size has its own key; a remount with a new key
   opens the new window before closing the old one.
-- `pane.focus` doesn't reach overlay terminals in Herdr 0.1.10 (it shows a
+- `pane.focus` doesn't reach overlay terminals in Herdr 0.1.14 (it shows a
   failed-command toast), so the terminal can't be focused for the person.
-  `focused()` doesn't report one either: after a click into the window's
-  terminal it still names the pane underneath. The header's
-  `on_mouse_down_out` sees every press outside the header; a press inside
-  the window (the header's bounds widened by the 1px border, down to the
-  window's height, `size.height × window.viewport_size().height`) means the
-  terminal has the keyboard until a press outside it, or until `focused()`
-  changes. The tabs and buttons stop mouse-down propagation (or they'd drag
-  the window), so they focus the header themselves.
+  From 0.1.14, `focused()` does report a window's terminal: `pane` is null,
+  and `terminal` and `cwd` describe the block holding the keyboard. Float
+  uses that for its shown terminal, the header's native focus handle, and
+  Notes' focus/blur events. `window().active` dims the border when the app
+  loses focus. The tabs and buttons stop mouse-down propagation (or they'd
+  drag the window), so they focus the header themselves.
 - A layout's `border` can't change color without replacing the window,
   which rebuilds the terminal view and loses the keyboard, so the mod draws
-  the border with its own blocks. Presses update it at once (the header's
-  `on_mouse_down_out` and its own controls); a 150 ms check catches the rest.
-  The answer lives in the shared `globalThis` entry, and the header and the
-  three edge blocks each wait on one shared promise in a `cx.spawn` task and
-  `cx.notify()` when it resolves, so all four redraw together. Polling in
-  each block let the sides change before the header, and calling another
-  view's `cx.notify()` from the header's call redrew it about a second late.
+  the border with its own blocks. Live focus changes redraw the header,
+  which updates the answer before drawing. Native focus changes do not
+  always redraw the mod, so a 150 ms check also reads real focus; unchanged
+  ticks never redraw the border. Notes' focus flag applies only on its page.
+  The answer is published through the boolean `shared("float-space.focus.v1")`.
+  Herdr refreshes all copies when it changes, so the header and all three
+  edges draw the same value. It is rewritten from actual focus on opening,
+  and set false on closing; it is presentation state, never terminal ownership
+  or permission to act. No focus promise or callback belongs to another copy,
+  so closing or reloading one cannot strand the other border blocks.
   A header closed by a remount must not clear the answer for the new one.
 - Herdr's terminal right-click menu comes from the shown layout's
-  `terminal_menu`; an overlay layout's own is ignored. In the window its pane
-  items (Split, Zoom, Close pane) fail with `no pane
-  "<overlay>/float-space-terminal"`; "Send right-clicks to pane" works.
+  `terminal_menu`; an overlay layout's own is ignored. Since Herdr 0.1.14,
+  pane items (Split, Zoom, Close pane) are omitted for a window terminal;
+  "Send right-clicks to pane" works.
 - A press outside a popup closes it before the opening button's click
   arrives. The popup records itself in `globalThis.__herdr_float_space_size_v1`;
   the size button checks it on press, so a second press only closes it.
@@ -384,7 +394,8 @@ their programs still running, returning the keyboard to the pane underneath.
 - Renaming the mod: the name is in its folder, the `mods/float-space/*.svg`
   paths, `mod: "float-space"` in the overlay specs, the `herdr.mod` label, the
   `float-space.v1` key, the two `globalThis` names and `keys.json`.
-- Built on Herdr 0.1.10, core 0.1.15; tested on 0.1.11, core 0.1.16, Linux. It runs `hc` and
+- Requires Herdr 0.1.14 for floating-terminal focus; first built on 0.1.10,
+  core 0.1.15 and previously tested on 0.1.11 / 0.1.16, Linux. It runs `hc` and
   local shells, keeps Notes as plaintext in `data/float-space/notes.json`,
   makes no network requests and reads no files outside the app.
 

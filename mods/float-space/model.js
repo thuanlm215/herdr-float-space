@@ -191,13 +191,6 @@ export function returnPane(previous, current, panes, owned) {
   return available.find(pane => pane.focused)?.pane ?? available[0]?.pane ?? null;
 }
 
-// Whether a press landed in the window, given its header's bounds and the
-// window's height, both in window pixels. The 1px border counts.
-export function pressedInWindow(position, bar, height) {
-  return position.x >= bar.x - 1 && position.x <= bar.x + bar.width + 1
-    && position.y >= bar.y - 1 && position.y <= bar.y - 1 + height;
-}
-
 // The terminal a window shows; null when it shows Notes.
 export function shownTerminal(state) {
   return state.page === "terminal" ? state.active : null;
