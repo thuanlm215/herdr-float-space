@@ -1,5 +1,32 @@
 # Validation
 
+## Pending commands and blocked input, 2026-11-09
+
+Checked on Linux with Herdr app 0.1.14 and core 0.1.19. The current source
+passes 84 Node tests, 8 installer tests and `herdr-app check` for both mods.
+
+An isolated Xvfb app used the exact mod source and a private `hc` wrapper
+that held a Float terminal spawn before it ran. Before the fix, the normal
+new-tab button worked before the hold but stopped responding while the
+command was pending. Ctrl+Shift+Space could not hide Float during that wait.
+The app's renderer treats width/height <= 1 as viewport fractions, so the
+supposed 1-pixel command windows actually covered the viewport. Commands
+also waited behind the in-flight command lease, including Hide.
+
+After switching control windows to 2-by-2 logical pixels at the top left,
+the same held-spawn test verified clicks on the background button and
+clicking/typing in its terminal. In separate runs, both the hide button and
+Ctrl+Shift+Space hid Float before the spawn was released. Once released,
+the shell was adopted, all command overlays closed and Float stayed hidden.
+The test app, private core and display were stopped afterwards.
+
+Regression tests also cover hiding during first-show queries, agent-toast
+ownership checks, reconciliation and stale-window toggles. Their delayed
+results cannot mount another window after dismissal. The regular native
+focus/shortcut checks, directory-swap reloads and hide/reopen cycles passed.
+This reproduces a specific input-blocking path; the user's intermittent
+Wayland case still needs a confirmation with the installed fix.
+
 ## Focus on Herdr 0.1.14, 2026-11-09
 
 Checked on Linux with Herdr app 0.1.14 and core 0.1.19:

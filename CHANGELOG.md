@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Slow terminal creation no longer leaves a transparent window covering the
+  app's buttons. Hide and Ctrl+Shift+Space stay responsive while work is
+  pending, and a delayed result does not reopen Float after it was hidden.
 - Ctrl+Shift+T creates a terminal in Float when its terminal has the keyboard.
   From a workspace terminal it still creates a regular tab, with Float open,
   hidden or absent from the layout.

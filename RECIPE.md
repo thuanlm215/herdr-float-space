@@ -213,7 +213,9 @@ their programs still running, returning the keyboard to the pane underneath.
   `hide.svg`, `close.svg`, `spinner.svg`, `chevron.svg`, `check.svg`,
   `rename.svg`.
 - **mod.json**: `{"place": "none", "title": "Float Space", "overlay":
-  {"kind": "window", "frame": "none", "width": 1, "height": 1}}`. No layout.
+  {"kind": "window", "frame": "none", "width": 2, "height": 2,
+  "at": {"x": 0, "y": 0}}}`. No layout. Values up to 1 are viewport
+  fractions in Herdr, so a 1-by-1 spec would cover the whole app.
 - **keys.json**: `ctrl-shift-space` → `mod.open:float-space` in `global`,
   `terminal` and `mod:float-space`. In `mod:float-space` only:
   `ctrl-tab` → `float-space.next`, `ctrl-shift-tab` → `float-space.prev`,
@@ -226,7 +228,7 @@ their programs still running, returning the keyboard to the pane underneath.
   bindings remain unchanged.
 - **Copies by role** (`props().role`):
   - none with an `overlay` id (from `mod.open`), or `"run"` with a `command`:
-    an invisible 1×1 window that runs one command (default `toggle`) and
+    an invisible 2×2 px window that runs one command (default `toggle`) and
     closes itself.
   - `"bar"` with a `generation`: the header.
   - `"alert"` with an `address`, `title`, `level`: an invisible 2px window
@@ -254,8 +256,8 @@ their programs still running, returning the keyboard to the pane underneath.
 - **Commands** run by the controller: `toggle`, `show`, `hide`, `new`,
   `notes`, `next`, `prev`, `reveal-<address>`, `select-<address>`, `end-<address>`, `resize-<W>-<H>`,
   `reconcile`. The header, the popup and the button start them with
-  `openOverlay({mod: "float-space", kind: "window", frame: "none", width: 1,
-  height: 1, props: {role: "run", command}})`.
+  `openOverlay({mod: "float-space", kind: "window", frame: "none", width: 2,
+  height: 2, at: {x: 0, y: 0}, props: {role: "run", command}})`.
   Only the current header generation handles the four navigation commands
   from `nextCommand()`, and only while it or Notes has keyboard focus with
   no size popup or notes menu. A remount must not leave an older header handling them too.
@@ -302,6 +304,10 @@ their programs still running, returning the keyboard to the pane underneath.
   in a copy that outlives it: not in the header (every remount closes it)
   and not in the popup. A promise queue shared by copies stalls for good once
   a stopped copy is in it; a lease that expires (15 s) doesn't.
+  Hide bypasses that lease while a command is pending. A dismissal counter
+  invalidates pending mounts: a new shell may finish and be adopted while
+  hidden, but the old command cannot reopen Float. Pending ownership checks,
+  reconciliation and stale-window toggles use the same counter.
 - A window closes itself when its terminal ends, with no notice to
   `openOverlay`'s caller, and before `terminals()` drops that terminal. The
   header's `close()` reports it; a mount `generation` tells Herdr's close from

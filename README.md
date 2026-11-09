@@ -64,6 +64,9 @@ again and you're back where you were. Your layout stays as it is.
   first time and then wherever you last dragged it. Drag free header space to
   move the window.
 - **−** hides the window and leaves shells and their programs running. The
+  button and Ctrl+Shift+Space also work while a terminal is being created
+  or a core query is pending. Work already started may finish in the
+  background; it does not reopen the window after you hide it. The
   selected tab's **×** ends its terminal at once, like closing a tab in
   Herdr. When a terminal ends, the window shows the next tab, or Notes after
   the last one.

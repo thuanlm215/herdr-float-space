@@ -16,7 +16,8 @@ function fixture() {
   const state = model.readState({ version: 2, page: "terminal", active: "t10",
     tabs: [{ address: "t10", title: "Terminal 1" }, { address: "t11", title: "Terminal 2" }] });
   const data = { state, active: true, header: false,
-    focus: { pane: "p1", terminal: "t1" }, shared: {}, writes: [] };
+    focus: { tab: "tab1", pane: "p1", terminal: "t1" }, shared: {}, writes: [],
+    closed: [], opened: [], notices: [] };
   function element() {
     const el = {};
     for (const method of ["size_full", "border_b", "border_l", "border_r", "rounded_b"])
@@ -29,6 +30,9 @@ function fixture() {
     shared: key => key === model.STATE_KEY ? data.state : data.shared[key] ?? null,
     setShared: (key, value) => { data.shared[key] = value; data.writes.push([key, value]); },
     focused: () => data.focus, app: () => ({ active: data.active }),
+    appHome: () => "/app", panes: () => [{ pane: "p1", tab: "tab1" }], terminals: () => [],
+    openOverlay: spec => { data.opened.push(spec); return "command-copy"; },
+    closeOverlay: id => data.closed.push(id), run() {}, notify: info => data.notices.push(info),
     props: () => ({ role: "bar", generation: 1 }),
     theme: () => ({ accent: "accent", input: "input", background: "background" }),
     div: element,
@@ -160,4 +164,26 @@ test("hot reload publishes missing focus state once and unchanged ticks do not r
   runtime.showFocus(false);
   runtime.showFocus(false);
   assert.deepEqual(data.writes, [["float-space.focus.v1", true], ["float-space.focus.v1", false]]);
+});
+
+test("an invisible command copy has pixel dimensions rather than viewport fractions", () => {
+  const { runtime, data } = fixture();
+  runtime.act("new");
+  const spec = data.opened[0];
+  // Herdr interprets every value <= 1 as a viewport fraction.
+  assert.ok(spec.width > 1 && spec.width <= 4);
+  assert.ok(spec.height > 1 && spec.height <= 4);
+});
+
+test("hiding a visible Float bypasses a pending command without releasing its lease", async () => {
+  const { runtime, data, memory } = fixture();
+  memory.lease = { owner: "pending-new", at: Date.now() };
+  await runtime.executeCommand("toggle", "toggle-copy", {
+    sleep: async () => { throw new Error("Hide must not wait for the pending operation"); },
+  });
+  assert.ok(data.closed.includes("float-window"));
+  assert.ok(data.closed.includes("toggle-copy"));
+  assert.equal(memory.controller.overlay, null);
+  assert.equal(memory.lease.owner, "pending-new");
+  assert.deepEqual(data.notices, []);
 });

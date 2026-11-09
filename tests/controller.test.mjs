@@ -26,6 +26,87 @@ function fixture() {
   return { controller, host, data };
 }
 
+test("a new terminal that finishes after hiding is adopted without reopening Float", async () => {
+  const { controller, host, data } = fixture();
+  await controller.handle("show", host);
+  let complete;
+  host.spawnOwned = () => new Promise(resolve => { complete = resolve; });
+  host.liveOwned = () => data.owned;
+  const pending = controller.handle("new", host);
+  controller.hide(host);
+  const mounts = data.opened.length;
+  const created = { address: "t99" };
+  data.owned.push(created);
+  complete(created);
+  await pending;
+  assert.equal(controller.overlay, null);
+  assert.equal(data.opened.length, mounts);
+  assert.ok(data.state.tabs.some(tab => tab.address === "t99"));
+});
+
+test("hiding cancels a pending first show before it starts a shell", async () => {
+  const { controller, host, data } = fixture();
+  let complete;
+  host.listOwned = () => new Promise(resolve => { complete = resolve; });
+  const pending = controller.handle("show", host);
+  controller.hide(host);
+  complete([]);
+  await pending;
+  assert.deepEqual(data.opened, []);
+  assert.deepEqual(data.owned, []);
+});
+
+test("a toast's delayed ownership check cannot reopen Float after hiding", async () => {
+  const { controller, host, data } = fixture();
+  await controller.handle("show", host);
+  const address = data.state.active;
+  let complete;
+  host.listOwned = () => new Promise(resolve => { complete = resolve; });
+  const pending = controller.reveal(address, host);
+  controller.hide(host);
+  const mounts = data.opened.length;
+  complete(data.owned);
+  await pending;
+  assert.equal(controller.overlay, null);
+  assert.equal(data.opened.length, mounts);
+});
+
+test("a delayed reconcile cannot reopen Float after dismissal", async () => {
+  const { controller, host, data } = fixture();
+  await controller.handle("show", host);
+  host.liveOwned = () => [];
+  let complete;
+  host.listOwned = () => new Promise(resolve => { complete = resolve; });
+  const pending = controller.handle("reconcile", host);
+  controller.hide(host);
+  const mounts = data.opened.length;
+  complete(data.owned);
+  await pending;
+  assert.equal(controller.overlay, null);
+  assert.equal(data.opened.length, mounts);
+});
+
+test("a stale-window toggle cancelled by hide cannot show another window later", async () => {
+  const { controller, host, data } = fixture();
+  await controller.handle("show", host);
+  controller.seen = controller.mounted;
+  host.liveOwned = () => [];
+  let complete;
+  let first = true;
+  host.listOwned = () => {
+    if (!first) return Promise.resolve([]);
+    first = false;
+    return new Promise(resolve => { complete = resolve; });
+  };
+  const pending = controller.handle("toggle", host);
+  controller.hide(host);
+  const mounts = data.opened.length;
+  complete([]);
+  await pending;
+  assert.equal(controller.overlay, null);
+  assert.equal(data.opened.length, mounts);
+});
+
 test("hide/reopen reuses the same terminal and returns focus", async () => {
   const { controller, host, data } = fixture();
   await controller.handle("toggle", host);

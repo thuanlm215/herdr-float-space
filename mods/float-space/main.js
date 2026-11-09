@@ -53,7 +53,9 @@ function windowShared() {
 // closes the header, so neither the header nor a popup may run one. The
 // shortcut's `mod.open` starts the same copy without a command: a toggle.
 function act(command) {
-  openOverlay({ mod: "float-space", kind: "window", frame: "none", width: 1, height: 1, props: { role: "run", command } });
+  // Values <= 1 are viewport fractions in Herdr, not pixels.
+  openOverlay({ mod: "float-space", kind: "window", frame: "none", width: 2, height: 2,
+    at: { x: 0, y: 0 }, props: { role: "run", command } });
 }
 
 // One command at a time. A claim, not a shared promise chain: a chain through
@@ -71,6 +73,13 @@ function release(owner) {
 
 async function executeCommand(command, owner, cx, shortcut = false) {
   try {
+    const memory = windowShared();
+    // Dismissal must remain available while a core query or spawn owns the lease.
+    // hide() also invalidates a pending mount, so its result won't reopen Float.
+    if (command === "hide" || (command === "toggle" && memory.lease && memory.controller.overlay)) {
+      memory.controller.hide(host());
+      return;
+    }
     await claim(cx, owner);
     await windowShared().controller.handle(command, host());
   } catch (error) {

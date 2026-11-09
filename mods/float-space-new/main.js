@@ -29,7 +29,7 @@ export default class NewTerminalShortcut extends View {
           // reply. Stay alive until Float has finished creating and mounting it.
           const finished = nextCommand();
           cx.timer.after(45000, () => closeOverlay(overlay));
-          openOverlay({ mod: "float-space", kind: "window", frame: "none", width: 1, height: 1,
+          openOverlay({ mod: "float-space", kind: "window", frame: "none", width: 2, height: 2, at: { x: 0, y: 0 },
             props: { role: "run", command: "new", shortcut: true } });
           let command = await finished;
           while (command !== "finished") command = await nextCommand();

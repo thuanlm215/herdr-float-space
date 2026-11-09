@@ -38,6 +38,8 @@ test("Ctrl+Shift+T in a Float terminal creates through Float's own command copy"
   assert.equal(data.calls[0][1].mod, "float-space");
   assert.equal(data.calls[0][1].props.role, "run");
   assert.equal(data.calls[0][1].props.command, "new");
+  assert.ok(data.calls[0][1].width > 1 && data.calls[0][1].width <= 4);
+  assert.ok(data.calls[0][1].height > 1 && data.calls[0][1].height <= 4);
   assert.deepEqual(data.calls[1], ["close", "shortcut"]);
   assert.equal(data.calls.some(([kind]) => kind === "run"), false);
 });
@@ -109,4 +111,12 @@ test("a newly focused terminal missing from the live cache is confirmed through 
   data.terminal = null;
   await press();
   assert.equal(data.calls[0][0], "open");
+});
+
+test("shortcut entry windows cannot cover the app while waiting for core", () => {
+  for (const name of ["float-space", "float-space-new"]) {
+    const spec = JSON.parse(readFileSync(new URL(`../mods/${name}/mod.json`, import.meta.url), "utf8")).overlay;
+    assert.ok(spec.width > 1 && spec.width <= 4, `${name}: width must be pixels`);
+    assert.ok(spec.height > 1 && spec.height <= 4, `${name}: height must be pixels`);
+  }
 });
