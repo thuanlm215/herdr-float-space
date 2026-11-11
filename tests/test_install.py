@@ -51,13 +51,14 @@ class InstallerTests(unittest.TestCase):
                 self.run_install(app)
             self.run_install(app, "--update")
             keys = json.loads((app / "keys.json").read_text())
-            for key, route in [("ctrl-tab", "next"), ("ctrl-shift-tab", "prev"), ("ctrl-shift-n", "notes")]:
+            for key, route in [("ctrl-tab", "next"), ("ctrl-shift-tab", "prev"), ("ctrl-shift-n", "notes"), ("ctrl-shift-w", "close")]:
                 self.assertEqual(keys["terminal"][key], f"mod.open:float-space-{route}")
-                self.assertEqual(keys["global"][key], original["global"][key])
+                if key in original["global"]:
+                    self.assertEqual(keys["global"][key], original["global"][key])
                 self.assertTrue((app / "mods" / f"float-space-{route}" / "main.js").is_file())
 
     def test_navigation_binding_conflict_changes_no_installed_files(self):
-        for key in ("ctrl-tab", "ctrl-shift-tab", "ctrl-shift-n"):
+        for key in ("ctrl-tab", "ctrl-shift-tab", "ctrl-shift-n", "ctrl-shift-w"):
             with self.subTest(key=key), tempfile.TemporaryDirectory() as directory:
                 app = Path(directory)
                 original = json.dumps({"terminal": {key: "my.custom-action"}})

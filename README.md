@@ -18,6 +18,11 @@ again and you're back where you were. Your layout stays as it is.
 - **Ctrl+Shift+T** adds a terminal to Float while its terminal, header or Notes
   has the keyboard. In a normal workspace terminal, it creates a regular tab,
   also while Float is hidden or when the layout has no Float button.
+- **Ctrl+Shift+W** closes the Float terminal that has the keyboard, or the
+  selected terminal when the header has focus. Closing the last terminal
+  leaves Notes open. In Notes it does nothing. In a workspace terminal it
+  keeps Herdr's normal Close tab behavior, including its last-tab space
+  confirmation.
 - Click a terminal to type. **+** adds another shell, starting in the folder
   the open space's terminal is in now (up to 12), the same place a new Herdr
   tab starts. A space on another machine starts in your home directory.
@@ -101,10 +106,10 @@ under `~/.config/herdr-app/backups/float-space/`. It never touches a layout.
 overwrite files you edited. `--app-home <folder>` picks another Herdr home.
 No restart is needed.
 
-**By hand:** copy all five folders under `mods/` into
+**By hand:** copy all six folders under `mods/` into
 `~/.config/herdr-app/mods/` and add the bindings from `keys.json` to yours.
-The four small shortcut entries are `float-space-new`, `float-space-next`,
-`float-space-prev` and `float-space-notes`.
+The five small shortcut entries are `float-space-new`, `float-space-next`,
+`float-space-prev`, `float-space-notes` and `float-space-close`.
 
 **Optional status-bar button**, if you keep a personal layout (a clone made
 with "Duplicate layout"): put this block beside its `status` block. Besides
@@ -186,11 +191,13 @@ app. See [CONTRIBUTING.md](CONTRIBUTING.md) before sending a change.
 ## Remove
 
 Hide Float Space, remove its `ctrl-shift-space` bindings, the
-`terminal` section's `ctrl-shift-t`, `ctrl-tab`, `ctrl-shift-tab` and
-`ctrl-shift-n` bindings and the `mod:float-space` section from `keys.json`
+`terminal` section's `ctrl-shift-t`, `ctrl-tab`, `ctrl-shift-tab`,
+`ctrl-shift-n` and `ctrl-shift-w` bindings and the `mod:float-space` section
+from `keys.json`
 (and the button block, if you added one), then delete `mods/float-space`,
-`mods/float-space-new`, `mods/float-space-next`, `mods/float-space-prev` and
-`mods/float-space-notes` from the app folder. Notes and shells stay (delete
+`mods/float-space-new`, `mods/float-space-next`, `mods/float-space-prev`,
+`mods/float-space-notes` and `mods/float-space-close` from the app folder.
+Notes and shells stay (delete
 `~/.config/herdr-app/data/float-space/notes.json` to remove the notes). To end the
 shells too, close their tabs first, or list them with
 `hc ls --json --label herdr.mod=float-space` and end only the ones whose

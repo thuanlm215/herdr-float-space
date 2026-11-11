@@ -454,7 +454,7 @@ export default class FloatSpace extends View {
       cx.spawn(async () => {
         for (;;) {
           const command = await nextCommand();
-          if (!["next", "prev", "new", "notes"].includes(command)) continue;
+          if (!["next", "prev", "new", "notes", "close"].includes(command)) continue;
           if (this.copyProps.generation !== windowShared().controller.generation) continue;
           if (globalThis[SIZE_POPUP]?.overlay || globalThis[NOTES_MENU]?.overlay || !this.canNavigate()) continue;
           act(command);

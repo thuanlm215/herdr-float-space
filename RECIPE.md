@@ -131,12 +131,14 @@ their programs still running, returning the keyboard to the pane underneath.
   and the shortcut opens it again there. Clicks beside it don't close it.
 - **Shortcuts**: Ctrl+Tab goes to the next page, Ctrl+Shift+Tab to the
   previous, wrapping through Notes and terminals in header order.
-  Ctrl+Shift+T adds a shell; Ctrl+Shift+N opens Notes. Bind these under
+  Ctrl+Shift+T adds a shell; Ctrl+Shift+N opens Notes; Ctrl+Shift+W closes
+  the selected terminal (no action in Notes). Bind these under
   `mod:float-space` for the header/Notes. Embedded terminals have Herdr's
-  `Terminal` context, so four short-lived routing entries handle the same
+  `Terminal` context, so five short-lived routing entries handle the same
   keys there. Each checks actual overlay focus and both ownership labels,
   then starts Float's existing command copy. Outside Float, they run the
-  workspace defaults: `tab.next`, `tab.prev`, `tab.new` and `space.new`.
+  workspace defaults: `tab.next`, `tab.prev`, `tab.new`, `space.new` and
+  `tab.close`.
   They work while Float is hidden or absent from the layout and never take
   the keyboard themselves.
 - The first opening starts a shell in the live folder of the terminal the
@@ -220,10 +222,11 @@ their programs still running, returning the keyboard to the pane underneath.
 - **keys.json**: `ctrl-shift-space` → `mod.open:float-space` in `global`,
   `terminal` and `mod:float-space`. In `mod:float-space` only:
   `ctrl-tab` → `float-space.next`, `ctrl-shift-tab` → `float-space.prev`,
-  `ctrl-shift-t` → `float-space.new`, `ctrl-shift-n` → `float-space.notes`.
+  `ctrl-shift-t` → `float-space.new`, `ctrl-shift-n` → `float-space.notes`,
+  `ctrl-shift-w` → `float-space.close`.
   Under `terminal`, bind the same keys to `mod.open:float-space-next`,
   `mod.open:float-space-prev`, `mod.open:float-space-new` and
-  `mod.open:float-space-notes`, respectively. The entries ship identical
+  `mod.open:float-space-notes` and `mod.open:float-space-close`, respectively. The entries ship identical
   `main.js` routers; each `mod.json` selects its route through overlay props
   (`new` is the default). Each command sends an invocation-specific
   acknowledgement back to its router before the router closes. Closing it
@@ -260,7 +263,7 @@ their programs still running, returning the keyboard to the pane underneath.
   `reconcile`. The header, the popup and the button start them with
   `openOverlay({mod: "float-space", kind: "window", frame: "none", width: 2,
   height: 2, at: {x: 0, y: 0}, props: {role: "run", command}})`.
-  Only the current header generation handles the four navigation commands
+  Only the current header generation handles the navigation and close commands
   from `nextCommand()`, and only while it or Notes has keyboard focus with
   no size popup or notes menu. A remount must not leave an older header handling them too.
 - **Reconciliation**: every 3 s while open, compare owned live addresses with

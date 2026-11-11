@@ -9,6 +9,7 @@ const ROUTES = {
   next: { receiver: "float-space-next", fallback: "tab.next" },
   prev: { receiver: "float-space-prev", fallback: "tab.prev" },
   notes: { receiver: "float-space-notes", fallback: "space.new" },
+  close: { receiver: "float-space-close", fallback: "tab.close" },
 };
 
 async function ownsFocus(focus, terminal) {
@@ -41,7 +42,8 @@ export default class TerminalShortcut extends View {
           const finished = nextCommand();
           cx.timer.after(45000, () => closeOverlay(overlay));
           openOverlay({ mod: "float-space", kind: "window", frame: "none", width: 2, height: 2, at: { x: 0, y: 0 },
-            props: { role: "run", command, shortcut: `${route.receiver}.${token}` } });
+            props: { role: "run", command: command === "close" ? `end-${focus.terminal}` : command,
+              shortcut: `${route.receiver}.${token}` } });
           let reply = await finished;
           while (reply !== token) reply = await nextCommand();
         } else {

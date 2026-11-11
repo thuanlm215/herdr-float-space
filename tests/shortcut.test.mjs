@@ -114,20 +114,20 @@ test("a newly focused terminal missing from the live cache is confirmed through 
 });
 
 test("shortcut entry windows cannot cover the app while waiting for core", () => {
-  for (const name of ["float-space", "float-space-new", "float-space-next", "float-space-prev", "float-space-notes"]) {
+  for (const name of ["float-space", "float-space-new", "float-space-next", "float-space-prev", "float-space-notes", "float-space-close"]) {
     const spec = JSON.parse(readFileSync(new URL(`../mods/${name}/mod.json`, import.meta.url), "utf8")).overlay;
     assert.ok(spec.width > 1 && spec.width <= 4, `${name}: width must be pixels`);
     assert.ok(spec.height > 1 && spec.height <= 4, `${name}: height must be pixels`);
   }
 });
 
-for (const [route, fallback] of [["new", "tab.new"], ["next", "tab.next"], ["prev", "tab.prev"], ["notes", "space.new"]]) {
+for (const [route, fallback] of [["new", "tab.new"], ["next", "tab.next"], ["prev", "tab.prev"], ["notes", "space.new"], ["close", "tab.close"]]) {
   test(`${route} routes an owned overlay terminal to Float and uses its own acknowledgement`, async () => {
     const { data, press } = fixture();
     data.route = route;
     await press();
     const spec = data.calls.find(([kind]) => kind === "open")[1];
-    assert.equal(spec.props.command, route);
+    assert.equal(spec.props.command, route === "close" ? "end-t10" : route);
     assert.ok(spec.props.shortcut.startsWith(`float-space-${route}.finished-`));
     assert.deepEqual(data.calls.at(-1), ["close", "shortcut"]);
     assert.equal(data.calls.some(([kind]) => kind === "run"), false);
@@ -153,7 +153,7 @@ for (const [route, fallback] of [["new", "tab.new"], ["next", "tab.next"], ["pre
     data.route = route;
     data.terminal = null;
     await press();
-    assert.equal(data.calls[0][1].props.command, route);
+    assert.equal(data.calls[0][1].props.command, route === "close" ? "end-t10" : route);
   });
 }
 
@@ -173,10 +173,19 @@ test("a stale acknowledgement cannot close another invocation", async () => {
 
 test("every shortcut entry ships the same router with its own route props", () => {
   const common = readFileSync(new URL("../mods/float-space-new/main.js", import.meta.url), "utf8");
-  for (const route of ["next", "prev", "notes"]) {
+  for (const route of ["next", "prev", "notes", "close"]) {
     const base = `../mods/float-space-${route}/`;
     assert.equal(readFileSync(new URL(base + "main.js", import.meta.url), "utf8"), common);
     const spec = JSON.parse(readFileSync(new URL(base + "mod.json", import.meta.url), "utf8"));
     assert.equal(spec.overlay.props.shortcut, route);
   }
+});
+
+test("close targets the terminal that held the keyboard even if the selected tab is stale", async () => {
+  const { data, press } = fixture();
+  data.route = "close";
+  data.state.active = "t11";
+  await press();
+  assert.equal(data.calls[0][1].props.command, "end-t10");
+  assert.equal(data.calls.some(([kind]) => kind === "run"), false);
 });

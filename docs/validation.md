@@ -1,5 +1,27 @@
 # Validation
 
+## Close shortcut routing, 2026-11-11
+
+Checked on Linux with Herdr app 0.1.15 and core 0.1.20. All 105 Node tests,
+10 installer tests and `herdr-app check` for all six mods pass. The close
+router targets the terminal that actually held the keyboard, including when
+the saved selected tab is stale. The controller reuses the ownership-checked
+end command. Header Close is a no-op while hidden or in Notes.
+
+In an isolated Xvfb app, the workspace had one tab while Float had two.
+Actual Ctrl+Shift+W in the Float terminal ended only that terminal. The same
+key from the remounted header ended the last Float terminal and left Notes
+open. Pressing it again in Notes left the workspace and its terminal alive,
+without a Close space confirmation. Workspace keyboard focus was verified
+by typing a marker before testing fallback: with two workspace tabs, the key
+ended its own tab; with the last workspace tab, it opened Herdr's normal
+Close space confirmation. Escape cancelled it and kept the terminal alive.
+No shortcut routers were left open, and the app reported no errors.
+
+Evidence is in ignored `artifacts/close-shortcut-20261111/`. This is Linux
+Xvfb/XTest evidence; KDE/Wayland human acceptance and other operating systems
+remain unverified. The private app, core and display were stopped afterwards.
+
 ## Terminal navigation shortcuts, 2026-11-11
 
 Checked on Linux with installed Herdr app 0.1.15 and core 0.1.20, without

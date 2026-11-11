@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Ctrl+Shift+W in Float closes its focused terminal instead of the workspace
+  tab underneath. The last Float terminal leaves Notes open; Notes ignores
+  this key. Workspace terminals keep their normal Close tab action.
+
 - Ctrl+Tab, Ctrl+Shift+Tab and Ctrl+Shift+N now work inside Float terminals
   to cycle pages or open Notes. Workspace terminals keep the corresponding
   next-tab, previous-tab and new-space actions. Each routing entry waits

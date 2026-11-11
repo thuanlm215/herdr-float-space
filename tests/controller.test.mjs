@@ -871,3 +871,37 @@ test("keyboard navigation is a no-op while hidden or with only Notes", async () 
   assert.equal(controller.overlay, null);
   assert.equal(data.opened.length, 1);
 });
+
+test("the close key ends the selected Float terminal and the last one leaves Notes", async () => {
+  const { controller, host, data } = fixture();
+  await controller.handle("show", host);
+  const first = data.state.active;
+  await controller.handle("new", host);
+  const second = data.state.active;
+  await controller.handle("close", host);
+  assert.deepEqual(data.killed, [second]);
+  assert.equal(data.state.active, first);
+  assert.equal(data.state.page, "terminal");
+  await controller.handle("close", host);
+  assert.deepEqual(data.killed, [second, first]);
+  assert.equal(data.state.page, "notes");
+  assert.equal(data.state.tabs.length, 0);
+  assert.ok(controller.overlay);
+});
+
+test("the close key in Notes or a hidden Float never ends a terminal", async () => {
+  const { controller, host, data } = fixture();
+  await controller.handle("show", host);
+  await controller.handle("notes", host);
+  const before = structuredClone(data.state);
+  const opened = data.opened.length;
+  await controller.handle("close", host);
+  assert.deepEqual(data.state, before);
+  assert.equal(data.opened.length, opened);
+  assert.deepEqual(data.killed, []);
+  await controller.handle("hide", host);
+  data.state.page = "terminal";
+  await controller.handle("close", host);
+  assert.deepEqual(data.killed, []);
+  assert.equal(controller.overlay, null);
+});

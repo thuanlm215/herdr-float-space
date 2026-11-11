@@ -5,13 +5,15 @@
     "ctrl-shift-t": "mod.open:float-space-new",
     "ctrl-tab": "mod.open:float-space-next",
     "ctrl-shift-tab": "mod.open:float-space-prev",
-    "ctrl-shift-n": "mod.open:float-space-notes"
+    "ctrl-shift-n": "mod.open:float-space-notes",
+    "ctrl-shift-w": "mod.open:float-space-close"
   },
   "mod:float-space": {
     "ctrl-shift-space": "mod.open:float-space",
     "ctrl-tab": "float-space.next",
     "ctrl-shift-tab": "float-space.prev",
     "ctrl-shift-t": "float-space.new",
-    "ctrl-shift-n": "float-space.notes"
+    "ctrl-shift-n": "float-space.notes",
+    "ctrl-shift-w": "float-space.close"
   }
 }

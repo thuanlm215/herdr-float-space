@@ -174,6 +174,11 @@ export class FloatController {
       await this.reveal(command.slice(7), host);
     } else if (command === "hide") {
       this.hide(host);
+    } else if (command === "close") {
+      const state = this.state(host);
+      // Notes is permanent. Never let its close key reach the workspace.
+      if (!this.overlay || state.page !== "terminal" || !state.active) return;
+      await this.handle(`end-${state.active}`, host);
     } else if (command === "new") {
       const visibility = this.visibility ?? 0;
       if (!this.overlay) this.previous = host.focused();
