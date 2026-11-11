@@ -129,15 +129,16 @@ their programs still running, returning the keyboard to the pane underneath.
   terminal or the window has the keyboard. The optional button does the
   same. Changing spaces or tabs keeps it open; switching layouts closes it,
   and the shortcut opens it again there. Clicks beside it don't close it.
-- **Header/Notes shortcuts**: Ctrl+Tab goes to the next page,
-  Ctrl+Shift+Tab to the previous, wrapping through Notes and the terminals
-  in header order. Ctrl+Shift+T adds a shell; Ctrl+Shift+N opens Notes.
-  Bind these under `mod:float-space`. Embedded terminals have Herdr's
-  `Terminal` key context, so Ctrl+Tab/Shift+Tab and Ctrl+Shift+N still need
-  the header. Ctrl+Shift+T also works in the Float terminal: a short-lived
-  routing mod checks actual focus and ownership, then opens Float's existing
-  `new` command copy or runs the normal `tab.new`. The latter also works
-  when Float is hidden or absent from the layout. It never focuses itself.
+- **Shortcuts**: Ctrl+Tab goes to the next page, Ctrl+Shift+Tab to the
+  previous, wrapping through Notes and terminals in header order.
+  Ctrl+Shift+T adds a shell; Ctrl+Shift+N opens Notes. Bind these under
+  `mod:float-space` for the header/Notes. Embedded terminals have Herdr's
+  `Terminal` context, so four short-lived routing entries handle the same
+  keys there. Each checks actual overlay focus and both ownership labels,
+  then starts Float's existing command copy. Outside Float, they run the
+  workspace defaults: `tab.next`, `tab.prev`, `tab.new` and `space.new`.
+  They work while Float is hidden or absent from the layout and never take
+  the keyboard themselves.
 - The first opening starts a shell in the live folder of the terminal the
   open space is showing (where a new Herdr tab starts; the space's stored
   folder only if that terminal has none). Later openings show the tab that
@@ -220,12 +221,13 @@ their programs still running, returning the keyboard to the pane underneath.
   `terminal` and `mod:float-space`. In `mod:float-space` only:
   `ctrl-tab` → `float-space.next`, `ctrl-shift-tab` → `float-space.prev`,
   `ctrl-shift-t` → `float-space.new`, `ctrl-shift-n` → `float-space.notes`.
-  Under `terminal`, `ctrl-shift-t` → `mod.open:float-space-new`; this routing
-  mod lives in `mods/float-space-new/` (`main.js`, `mod.json`) and closes
-  itself after routing. For Float, it waits for `float-space-new.finished`
-  from the `new` command copy before closing; ending it earlier can cancel
-  the first core reply before the new shell is adopted. Workspace/global
-  bindings remain unchanged.
+  Under `terminal`, bind the same keys to `mod.open:float-space-next`,
+  `mod.open:float-space-prev`, `mod.open:float-space-new` and
+  `mod.open:float-space-notes`, respectively. The entries ship identical
+  `main.js` routers; each `mod.json` selects its route through overlay props
+  (`new` is the default). Each command sends an invocation-specific
+  acknowledgement back to its router before the router closes. Closing it
+  earlier can cancel the command's core reply. Keep the global bindings.
 - **Copies by role** (`props().role`):
   - none with an `overlay` id (from `mod.open`), or `"run"` with a `command`:
     an invisible 2×2 px window that runs one command (default `toggle`) and

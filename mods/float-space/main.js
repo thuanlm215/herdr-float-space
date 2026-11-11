@@ -86,7 +86,7 @@ async function executeCommand(command, owner, cx, shortcut = false) {
     notify({ title: "Float Space", body: String(error?.message ?? error), level: "error" });
   } finally {
     release(owner);
-    if (shortcut) run("float-space-new.finished");
+    if (shortcut) run(typeof shortcut === "string" ? shortcut : "float-space-new.finished");
     closeOverlay(owner);
   }
 }
@@ -330,7 +330,7 @@ export default class FloatSpace extends View {
     this.role = role ?? (this.copyProps.overlay ? "run" : "launcher");
     if (this.role === "run") {
       const owner = this.copyProps.overlay;
-      cx.spawn(cx => executeCommand(this.copyProps.command ?? "toggle", owner, cx, this.copyProps.shortcut === true));
+      cx.spawn(cx => executeCommand(this.copyProps.command ?? "toggle", owner, cx, this.copyProps.shortcut));
     } else if (this.role === "alert") {
       const { overlay, address, title, level } = this.copyProps;
       const command = `alert-${overlay}`;

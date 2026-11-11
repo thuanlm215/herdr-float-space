@@ -36,7 +36,9 @@ differ from its record.
 - `mods/float-space/controller.js`: the window's lifecycle (open, hide,
   reuse, recover, end a terminal) against a small host interface.
 - `mods/float-space/main.js`: views and the real Herdr and `hc` calls.
-- `mods/float-space-new/`: the Ctrl+Shift+T routing entry for terminal focus.
+- `mods/float-space-{new,next,prev,notes}/`: terminal shortcut entries.
+  Each ships the same `main.js` router; the route comes from `mod.json` props.
+  Keep these copies in sync (the shortcut tests check them).
 - `scripts/install.py`: installer; `MOD_FILES` must name every mod and each
   file it ships (CI checks this).
 - `RECIPE.md` and `preview.png`: the herdr.dev listing. Keep them in step

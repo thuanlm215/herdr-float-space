@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Ctrl+Tab, Ctrl+Shift+Tab and Ctrl+Shift+N now work inside Float terminals
+  to cycle pages or open Notes. Workspace terminals keep the corresponding
+  next-tab, previous-tab and new-space actions. Each routing entry waits
+  for its own command acknowledgement before closing.
+
 - Slow terminal creation no longer leaves a transparent window covering the
   app's buttons. Hide and Ctrl+Shift+Space stay responsive while work is
   pending, and a delayed result does not reopen Float after it was hidden.

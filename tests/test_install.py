@@ -40,6 +40,33 @@ class InstallerTests(unittest.TestCase):
             self.run_install(app, "--update")
             self.assertTrue((app / "mods/float-space-new/main.js").is_file())
 
+    def test_update_adds_navigation_entries_to_an_existing_new_terminal_router_install(self):
+        with tempfile.TemporaryDirectory() as directory:
+            app = Path(directory)
+            original = {"global": {"ctrl-tab": "tab.next", "ctrl-shift-tab": "tab.prev", "ctrl-shift-n": "space.new"}}
+            (app / "keys.json").write_text(json.dumps(original))
+            previous = {name: files for name, files in installer.MOD_FILES.items()
+                        if name in ("float-space", "float-space-new")}
+            with patch.dict(installer.MOD_FILES, previous, clear=True):
+                self.run_install(app)
+            self.run_install(app, "--update")
+            keys = json.loads((app / "keys.json").read_text())
+            for key, route in [("ctrl-tab", "next"), ("ctrl-shift-tab", "prev"), ("ctrl-shift-n", "notes")]:
+                self.assertEqual(keys["terminal"][key], f"mod.open:float-space-{route}")
+                self.assertEqual(keys["global"][key], original["global"][key])
+                self.assertTrue((app / "mods" / f"float-space-{route}" / "main.js").is_file())
+
+    def test_navigation_binding_conflict_changes_no_installed_files(self):
+        for key in ("ctrl-tab", "ctrl-shift-tab", "ctrl-shift-n"):
+            with self.subTest(key=key), tempfile.TemporaryDirectory() as directory:
+                app = Path(directory)
+                original = json.dumps({"terminal": {key: "my.custom-action"}})
+                (app / "keys.json").write_text(original)
+                with self.assertRaisesRegex(ValueError, "Shortcut conflict"):
+                    self.run_install(app)
+                self.assertEqual((app / "keys.json").read_text(), original)
+                self.assertFalse((app / "mods").exists())
+
     def test_failure_saving_keys_restores_both_mods_and_original_keys(self):
         with tempfile.TemporaryDirectory() as directory:
             app = Path(directory)

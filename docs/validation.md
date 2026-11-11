@@ -1,5 +1,33 @@
 # Validation
 
+## Terminal navigation shortcuts, 2026-11-11
+
+Checked on Linux with installed Herdr app 0.1.15 and core 0.1.20, without
+PR #877. All 99 Node tests, 10 installer tests and `herdr-app check` for
+all five mods pass. Tests cover ownership and live-cache fallback for each
+route, invocation-specific acknowledgements, command failures, and updating
+an existing installation while preserving keys or refusing a key conflict.
+
+An isolated Xvfb app used the exact installed source and actual XTest key
+events. Ctrl+Tab and Ctrl+Shift+Tab in a Float terminal moved between its
+terminals and wrapped through Notes. Ctrl+Shift+N opened Notes and typing
+was saved. Ctrl+Tab from Notes returned to the first terminal. The background
+workspace had two tabs: from its terminal, Ctrl+Tab/Shift+Tab selected those
+tabs and Ctrl+Shift+N created a space, with Float either visible or hidden.
+The Float state stayed unchanged by those workspace actions. Ctrl+Shift+T
+still created the right workspace or Float terminal. All shortcut command
+copies closed when the actions completed; the app reported no errors.
+
+The test waits for observed state/focus rather than assuming each frame or
+command has completed after a fixed delay. This is technical Linux
+Xvfb/XTest evidence, not human acceptance on KDE/Wayland, macOS or Windows.
+0.1.15 still needs a click to type in a terminal after Float remounts it;
+this change adds shortcut routing, not overlay terminal autofocus.
+
+Evidence is under the ignored `artifacts/shortcut-routing-20261111/` folder:
+test logs, `shortcut-results.json`, `new-shortcut-results.json`, and
+`shortcuts-float.png`. The scratch app, core and display were stopped.
+
 ## Pending commands and blocked input, 2026-11-09
 
 Checked on Linux with Herdr app 0.1.14 and core 0.1.19. The current source

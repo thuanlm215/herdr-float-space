@@ -17,7 +17,7 @@ function fixture() {
     tabs: [{ address: "t10", title: "Terminal 1" }, { address: "t11", title: "Terminal 2" }] });
   const data = { state, active: true, header: false,
     focus: { tab: "tab1", pane: "p1", terminal: "t1" }, shared: {}, writes: [],
-    closed: [], opened: [], notices: [] };
+    closed: [], opened: [], notices: [], commands: [] };
   function element() {
     const el = {};
     for (const method of ["size_full", "border_b", "border_l", "border_r", "rounded_b"])
@@ -32,7 +32,7 @@ function fixture() {
     focused: () => data.focus, app: () => ({ active: data.active }),
     appHome: () => "/app", panes: () => [{ pane: "p1", tab: "tab1" }], terminals: () => [],
     openOverlay: spec => { data.opened.push(spec); return "command-copy"; },
-    closeOverlay: id => data.closed.push(id), run() {}, notify: info => data.notices.push(info),
+    closeOverlay: id => data.closed.push(id), run: command => data.commands.push(command), notify: info => data.notices.push(info),
     props: () => ({ role: "bar", generation: 1 }),
     theme: () => ({ accent: "accent", input: "input", background: "background" }),
     div: element,
@@ -46,6 +46,18 @@ function fixture() {
   view.renderBar = () => memory.keyboard;
   return { view, data, memory, runtime };
 }
+
+test("command completion acknowledges the calling shortcut on success and failure", async () => {
+  for (const fails of [false, true]) {
+    const { runtime, memory, data } = fixture();
+    memory.controller.handle = async () => { if (fails) throw new Error("query failed"); };
+    await runtime.executeCommand("next", "router", {}, "float-space-next.finished-this-call");
+    assert.deepEqual(data.commands, ["float-space-next.finished-this-call"]);
+    assert.deepEqual(data.closed, ["router"]);
+    assert.equal(memory.lease, null);
+    assert.equal(data.notices.length, fails ? 1 : 0);
+  }
+});
 
 test("returning to the pane where a terminal click began clears Float focus", () => {
   const { view, data } = fixture();

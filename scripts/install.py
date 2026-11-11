@@ -17,7 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MOD_NAME = "float-space"
 MARKER = ".float-space-install.json"
 FILES = ("main.js", "controller.js", "model.js", "notes.js", "mod.json", "float.svg", "plus.svg", "notes.svg", "size.svg", "hide.svg", "spinner.svg", "close.svg", "chevron.svg", "check.svg", "rename.svg")
-MOD_FILES = {MOD_NAME: FILES, "float-space-new": ("main.js", "mod.json")}
+MOD_FILES = {MOD_NAME: FILES, **{f"float-space-{route}": ("main.js", "mod.json")
+                             for route in ("new", "next", "prev", "notes")}}
 GENERATED = {"gpui-kit.d.ts", "jsconfig.json"}
 
 
@@ -80,7 +81,7 @@ def main():
         subprocess.run(["herdr-app", "check", str(ROOT / "mods" / name)], env=env, check=True)
     for destination in destinations.values():
         print(f"Mod: {destination}")
-    print("Shortcuts: Ctrl+Shift+Space, Ctrl+Shift+T")
+    print("Shortcuts: Ctrl+Shift+Space, Ctrl+Shift+T, Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+Shift+N")
     if args.dry_run:
         print("Dry run: no files changed.")
         return
