@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Pause the 150 ms native-focus check while the Herdr window is hidden
+  (`window()?.visible === false`), dimming the border immediately, and guard
+  `window()` when null (`herdr-app check` / Herdr 0.1.18).
+
 - Ctrl+Shift+W in Float closes its focused terminal instead of the workspace
   tab underneath. The last Float terminal leaves Notes open; Notes ignores
   this key. Workspace terminals keep their normal Close tab action.

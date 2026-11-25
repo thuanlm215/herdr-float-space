@@ -256,7 +256,7 @@ function watchAgents() {
   // After a gap (hidden with no button, reloaded), what changed meanwhile is old news.
   const seen = Date.now() - (memory.watchedAt ?? 0) < 3000 ? memory.statuses ?? null : null;
   memory.watchedAt = Date.now();
-  const showing = memory.controller.overlay && app().active && state.page === "terminal" ? state.active : null;
+  const showing = memory.controller.overlay && app()?.active && state.page === "terminal" ? state.active : null;
   const looking = memory.keyboard ? showing : null;
   const { statuses, alerts } = agentAlerts(seen, live, looking);
   memory.statuses = statuses;
@@ -404,7 +404,7 @@ export default class FloatSpace extends View {
         this.pendingSave?.cancel();
         this.pendingSave = cx.timer.after(400, () => this.saveNote());
       });
-      this.notes.on("focus", () => { windowShared().notesFocused = true; showFocus(app().active); });
+      this.notes.on("focus", () => { windowShared().notesFocused = true; showFocus(Boolean(app()?.active)); });
       this.notes.on("blur", () => {
         windowShared().notesFocused = false;
         showFocus(false);
@@ -447,7 +447,13 @@ export default class FloatSpace extends View {
       // Native focus can change without changing Herdr's live snapshot or
       // rerunning this view. Read the real focus anyway; showFocus wakes the
       // border only when the answer changes, never on an unchanged tick.
-      cx.timer.every(150, () => showFocus(this.keyboard()));
+      cx.timer.every(150, () => {
+        if (app()?.visible === false) {
+          showFocus(false);
+          return;
+        }
+        showFocus(this.keyboard());
+      });
       watchesAgents(this, cx);
       // Only the header consumes navigation commands. Other shown copies
       // receive the same message; executing here prevents duplicate shells.
@@ -482,7 +488,7 @@ export default class FloatSpace extends View {
     // so this copy subscribes before the keyboard moves to a terminal.
     const now = focused();
     const state = readState(shared(STATE_KEY));
-    if (!app().active) return false;
+    if (!app()?.active) return false;
     if (this.handle?.is_focused() || (state.page === "notes" && windowShared().notesFocused)) return true;
     return state.page === "terminal" && state.active !== null && now?.pane === null && now.terminal === state.active;
   }

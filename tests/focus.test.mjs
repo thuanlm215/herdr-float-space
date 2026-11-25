@@ -29,7 +29,7 @@ function fixture() {
   const runtime = vm.createContext({ ...model, FloatController, View: class {},
     shared: key => key === model.STATE_KEY ? data.state : data.shared[key] ?? null,
     setShared: (key, value) => { data.shared[key] = value; data.writes.push([key, value]); },
-    focused: () => data.focus, app: () => ({ active: data.active }),
+    focused: () => data.focus, app: () => (data.windowNull ? null : { active: data.active, visible: data.visible ?? true }),
     appHome: () => "/app", panes: () => [{ pane: "p1", tab: "tab1" }], terminals: () => [],
     openOverlay: spec => { data.opened.push(spec); return "command-copy"; },
     closeOverlay: id => data.closed.push(id), run: command => data.commands.push(command), notify: info => data.notices.push(info),
@@ -199,3 +199,31 @@ test("hiding a visible Float bypasses a pending command without releasing its le
   assert.equal(memory.lease.owner, "pending-new");
   assert.deepEqual(data.notices, []);
 });
+
+test("a hidden or absent host window dims focus without throwing", () => {
+  const { view, data, memory } = fixture();
+  const ticks = new Map();
+  view.init({}, {
+    focus_handle: () => view.handle,
+    spawn() {},
+    timer: { after() {}, every: (ms, callback) => ticks.set(ms, callback) },
+  });
+  data.header = true;
+  assert.equal(view.render(), true);
+  assert.equal(memory.keyboard, true);
+
+  data.visible = false;
+  ticks.get(150)();
+  assert.equal(memory.keyboard, false);
+
+  data.visible = true;
+  data.windowNull = true;
+  assert.doesNotThrow(() => ticks.get(150)());
+  assert.equal(view.keyboard(), false);
+  assert.doesNotThrow(() => runtimeWatch(view, data));
+});
+
+function runtimeWatch(view, data) {
+  data.focus = { pane: null, terminal: "t10" };
+  view.render();
+}
